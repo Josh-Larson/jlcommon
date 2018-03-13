@@ -1,16 +1,20 @@
 plugins {
 	id 'java'
 	id 'application'
+	id "com.jfrog.bintray" version "1.8.0"
+	id 'maven'
+	id 'maven-publish'
 	id 'idea'
 }
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
-group = 'me.joshlarson'
-version = '1.0'
-def projectVersion = version
+def projectGroup = 'me.joshlarson'
 def projectName = 'jlcommon'
+def projectVersion = '1.0'
+group = projectGroup
+version = projectVersion
 
 repositories {
 	jcenter()
@@ -49,4 +53,65 @@ artifacts {
 
 task wrapper(type: Wrapper) {
 	gradleVersion = "4.6"
+}
+
+def pomConfig = {
+	licenses {
+		license {
+			name "The MIT License"
+			url "https://opensource.org/licenses/MIT"
+			distribution "repo"
+		}
+	}
+	developers {
+		developer {
+			id "josh-larson"
+			name "Josh Larson"
+			email "joshua-github@ourclan.net"
+		}
+	}
+	
+	scm {
+		url "https://github.com/Josh-Larson/jlcommon"
+	}
+}
+
+
+// Create the publication with the pom configuration:
+publishing {
+	publications {
+		jlcommon(MavenPublication) {
+			from components.java
+			artifact sourcesJar
+			artifact javadocJar
+			groupId projectGroup
+			artifactId projectName
+			version projectVersion
+			pom.withXml {
+				def root = asNode()
+				root.appendNode('description', 'A Common Java Library')
+				root.appendNode('name', 'JLCommon')
+				root.appendNode('url', 'https://github.com/Josh-Larson/jlcommon')
+				root.children().last() + pomConfig
+			}
+		}
+	}
+}
+
+bintray {
+	user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
+	key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
+	publications = ['jlcommon']
+	pkg {
+		repo = 'jlcommon'
+		name = projectName
+		licenses = ['MIT']
+		vcsUrl = 'https://github.com/Josh-Larson/jlcommon'
+		version {
+			name = projectVersion
+			desc = 'Common Java Library'
+			released = new Date()
+			vcsTag = 'v1.0'
+		}
+	}
 }
