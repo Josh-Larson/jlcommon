@@ -1,0 +1,52 @@
+plugins {
+	id 'java'
+	id 'application'
+	id 'idea'
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+group = 'me.joshlarson'
+version = '1.0'
+def projectVersion = version
+def projectName = 'jlcommon'
+
+repositories {
+	jcenter()
+}
+
+dependencies {
+	compile group: 'com.google.code.findbugs', name: 'annotations', version: '+'
+	testCompile 'junit:junit:4.12'
+}
+
+jar {
+	baseName = projectName
+	classifier = null
+	version = projectVersion
+	from sourceSets.main.allSource
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+	baseName = projectName
+	classifier = "sources"
+	version = projectVersion
+	from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+	baseName = projectName
+	classifier = "javadoc"
+	version = projectVersion
+	from javadoc.destinationDir
+}
+
+artifacts {
+	archives sourcesJar
+	archives javadocJar
+}
+
+task wrapper(type: Wrapper) {
+	gradleVersion = "4.6"
+}

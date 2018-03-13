@@ -1,0 +1,177 @@
+package me.joshlarson.jlcommon.concurrency;
+
+import me.joshlarson.jlcommon.utilities.ThreadUtilities;
+
+import javax.annotation.Nonnegative;
+import javax.annotation.Nonnull;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class ThreadPool {
+	
+	private static final Runnable END_OF_QUEUE = new EndOfQueueTask();
+	
+	private final ThreadRunningProtector running;
+	private final boolean priorityScheduling;
+	private final int nThreads;
+	private final String nameFormat;
+	private final AtomicInteger priority;
+	private ThreadExecutor executor;
+	
+	public ThreadPool(@Nonnegative int nThreads, @Nonnull String nameFormat) {
+		this(false, nThreads, nameFormat);
+	}
+	
+	public ThreadPool(boolean priorityScheduling, @Nonnegative int nThreads, @Nonnull String nameFormat) {
+		this.running = new ThreadRunningProtector();
+		this.priorityScheduling = priorityScheduling;
+		this.nThreads = nThreads;
+		this.nameFormat = nameFormat;
+		this.executor = null;
+		this.priority = new AtomicInteger(Thread.NORM_PRIORITY);
+	}
+	
+	public void setPriority(@Nonnegative int priority) {
+		this.priority.set(priority);
+	}
+	
+	public void start() {
+		if (!running.start())
+			return;
+		executor = new ThreadExecutor(priorityScheduling, nThreads, ThreadUtilities.newThreadFactory(nameFormat, priority.get()));
+		executor.start();
+	}
+	
+	public void stop(boolean interrupt) {
+		if (!running.stop())
+			return;
+		executor.stop(interrupt);
+	}
+	
+	public boolean awaitTermination(@Nonnegative long timeout) {
+		return running.expectCreated() && executor.awaitTermination(timeout);
+	}
+	
+	@Nonnegative
+	public int getQueuedTasks() {
+		return executor.getQueuedTasks();
+	}
+	
+	public void execute(@Nonnull Runnable runnable) {
+		if (!running.expectRunning())
+			return;
+		executor.execute(runnable);
+	}
+	
+	public boolean isRunning() {
+		return running.isRunning();
+	}
+	
+	private static class ThreadExecutor {
+		
+		private final AtomicInteger runningThreads;
+		private final AtomicBoolean running;
+		private final BlockingQueue<Runnable> tasks;
+		private final List<Thread> threads;
+		private final int nThreads;
+		
+		public ThreadExecutor(boolean priorityScheduling, @Nonnegative int nThreads, @Nonnull ThreadFactory threadFactory) {
+			this.runningThreads = new AtomicInteger(0);
+			this.running = new AtomicBoolean(false);
+			if (priorityScheduling)
+				this.tasks = new PriorityBlockingQueue<>();
+			else
+				this.tasks = new LinkedBlockingQueue<>();
+			this.threads = new ArrayList<>(nThreads);
+			this.nThreads = nThreads;
+			for (int i = 0; i < nThreads; i++) {
+				threads.add(threadFactory.newThread(this::threadExecutor));
+			}
+		}
+		
+		public void start() {
+			running.set(true);
+			runningThreads.set(nThreads);
+			for (Thread t : threads) {
+				t.start();
+			}
+		}
+		
+		public void stop(boolean interrupt) {
+			running.set(false);
+			for (int i = 0; i < nThreads; i++) {
+				tasks.add(END_OF_QUEUE);
+			}
+			if (interrupt) {
+				for (Thread t : threads) {
+					t.interrupt();
+				}
+			}
+		}
+		
+		@Nonnegative
+		public int getQueuedTasks() {
+			return tasks.size();
+		}
+		
+		public void execute(@Nonnull Runnable runnable) {
+			assert running.get();
+			if (running.get())
+				tasks.offer(runnable);
+		}
+		
+		public boolean awaitTermination(@Nonnegative long time) {
+			try {
+				synchronized (runningThreads) {
+					while (runningThreads.get() > 0 && time > 0) {
+						long startWait = System.nanoTime();
+						runningThreads.wait(time);
+						time -= (long) ((System.nanoTime() - startWait) / 1E6 + 0.5);
+					}
+				}
+			} catch (InterruptedException e) {
+				return false;
+			}
+			return runningThreads.get() == 0;
+		}
+		
+		private void threadExecutor() {
+			try {
+				Runnable task = null;
+				while (task != END_OF_QUEUE) {
+					task = tasks.take();
+					ThreadUtilities.safeRun(task);
+				}
+			} catch (InterruptedException e) {
+				// Suppressed
+			} finally {
+				synchronized (runningThreads) {
+					runningThreads.decrementAndGet();
+					runningThreads.notifyAll();
+				}
+			}
+		}
+		
+	}
+	
+	private static class EndOfQueueTask implements Runnable, Comparable<Runnable> {
+		
+		@Override
+		public void run() {
+			
+		}
+		
+		@Override
+		public int compareTo(@Nonnull Runnable o) {
+			return 1;
+		}
+		
+	}
+	
+}
