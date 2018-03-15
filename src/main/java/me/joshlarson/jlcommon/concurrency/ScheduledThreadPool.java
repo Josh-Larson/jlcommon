@@ -49,7 +49,7 @@ public class ScheduledThreadPool {
 	}
 	
 	public void start() {
-		if (!running.start())
+		if (running.start())
 			return;
 		executor = Executors.newScheduledThreadPool(nThreads, threadFactory);
 	}

@@ -65,7 +65,7 @@ public class ThreadPool {
 	}
 	
 	public void start() {
-		if (!running.start())
+		if (running.start())
 			return;
 		executor = new ThreadExecutor(priorityScheduling, nThreads, ThreadUtilities.newThreadFactory(nameFormat, priority.get()));
 		executor.start();
