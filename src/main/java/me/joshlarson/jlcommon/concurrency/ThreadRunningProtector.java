@@ -42,7 +42,7 @@ class ThreadRunningProtector {
 	public boolean start() {
 		created = true;
 		assert !running.get() : "Thread has already been started";
-		return running.getAndSet(true);
+		return !running.getAndSet(true);
 	}
 	
 	/**
