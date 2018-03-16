@@ -23,69 +23,85 @@
  ***********************************************************************************/
 package me.joshlarson.jlcommon.concurrency;
 
-import me.joshlarson.jlcommon.utilities.ThreadUtilities;
+import me.joshlarson.jlcommon.concurrency.ThreadPool.PrioritizedRunnable;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
-import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-public class ScheduledThreadPool {
+@RunWith(JUnit4.class)
+public class TestThreadPool {
 	
-	private final ThreadRunningProtector running;
-	private final int nThreads;
-	private final ThreadFactory threadFactory;
-	private ScheduledExecutorService executor;
-	
-	public ScheduledThreadPool(@Nonnegative int nThreads, @Nonnull String nameFormat) {
-		this(nThreads, Thread.NORM_PRIORITY, nameFormat);
+	@Test
+	public void testStartThread() {
+		AtomicBoolean started = new AtomicBoolean(false);
+		ThreadPool thread = new ThreadPool(1, "thread");
+		thread.start();
+		thread.execute(() -> {
+			started.set(true);
+			thread.stop(false);
+		});
+		thread.awaitTermination(100);
+		Assert.assertTrue(started.get());
 	}
 	
-	public ScheduledThreadPool(@Nonnegative int nThreads, @Nonnegative int priority, @Nonnull String nameFormat) {
-		this.running = new ThreadRunningProtector();
-		this.nThreads = nThreads;
-		this.threadFactory = ThreadUtilities.newThreadFactory(nameFormat, priority);
-		this.executor = null;
+	@Test(expected=AssertionError.class)
+	public void testExecuteNotRunning() {
+		ThreadPool thread = new ThreadPool(1, "thread");
+		thread.start();
+		thread.stop(true);
+		thread.awaitTermination(100);
+		thread.execute(() -> {});
 	}
 	
-	public void start() {
-		if (!running.start())
-			return;
-		executor = Executors.newScheduledThreadPool(nThreads, threadFactory);
+	@Test(expected=AssertionError.class)
+	public void testExecuteNotStarted() {
+		ThreadPool thread = new ThreadPool(1, "thread");
+		thread.execute(() -> {});
 	}
 	
-	public void stop() {
-		if (!running.stop())
-			return;
-		executor.shutdownNow();
+	@Test
+	public void testThreadPriority() {
+		AtomicBoolean valid = new AtomicBoolean(false);
+		ThreadPool thread = new ThreadPool(1, "thread");
+		thread.setPriority(1);
+		thread.start();
+		thread.execute(() -> valid.set(Thread.currentThread().getPriority() == 1));
+		thread.stop(false);
+		thread.awaitTermination(100);
+		Assert.assertTrue(valid.get());
 	}
 	
-	public void executeWithFixedRate(@Nonnegative long initialDelay, @Nonnegative long time, @Nonnull Runnable runnable) {
-		if (!running.expectRunning())
-			return;
-		executor.scheduleAtFixedRate(() -> ThreadUtilities.safeRun(runnable), initialDelay, time, TimeUnit.MILLISECONDS);
+	@Test
+	public void testPrioritizationEnabled() {
+		ThreadPool thread = new ThreadPool(true, 1, "thread");
+		thread.start();
+		for (int i = 0; i < 1000; i++)
+			thread.execute(new TestRunnable());
+		thread.stop(false);
+		thread.awaitTermination(100);
 	}
 	
-	public void executeWithFixedDelay(@Nonnegative long initialDelay, @Nonnegative long time, @Nonnull Runnable runnable) {
-		if (!running.expectRunning())
-			return;
-		executor.scheduleWithFixedDelay(() -> ThreadUtilities.safeRun(runnable), initialDelay, time, TimeUnit.MILLISECONDS);
+	@Test(expected=IllegalArgumentException.class)
+	public void testPrioritizationInvalidRunnable() {
+		ThreadPool thread = new ThreadPool(true, 1, "thread");
+		thread.start();
+		thread.execute(() -> {});
 	}
 	
-	@CheckForNull
-	public ScheduledFuture<?> execute(@Nonnegative long delay, @Nonnull Runnable runnable) {
-		if (!running.expectRunning())
-			return null;
-		return executor.schedule(() -> ThreadUtilities.safeRun(runnable), delay, TimeUnit.MILLISECONDS);
-	}
-	
-	public boolean awaitTermination(@Nonnegative long time) {
-		if (!running.expectCreated())
-			return true;
-		try {
-			return executor.awaitTermination(time, TimeUnit.MILLISECONDS);
-		} catch (InterruptedException e) {
-			return false;
+	private static class TestRunnable implements PrioritizedRunnable {
+		
+		@Override
+		public int compareTo(@Nonnull PrioritizedRunnable o) {
+			return 0;
+		}
+		
+		@Override
+		public void run() {
+			
 		}
 	}
 	

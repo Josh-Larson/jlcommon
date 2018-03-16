@@ -33,12 +33,11 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ThreadPool {
 	
-	private static final Runnable END_OF_QUEUE = new EndOfQueueTask();
+	private static final PrioritizedRunnable END_OF_QUEUE = new EndOfQueueTask();
 	
 	private final ThreadRunningProtector running;
 	private final boolean priorityScheduling;
@@ -65,7 +64,7 @@ public class ThreadPool {
 	}
 	
 	public void start() {
-		if (running.start())
+		if (!running.start())
 			return;
 		executor = new ThreadExecutor(priorityScheduling, nThreads, ThreadUtilities.newThreadFactory(nameFormat, priority.get()));
 		executor.start();
@@ -87,26 +86,36 @@ public class ThreadPool {
 	}
 	
 	public void execute(@Nonnull Runnable runnable) {
-		if (!running.expectRunning())
-			return;
-		executor.execute(runnable);
+		if (running.expectRunning()) {
+			if (!priorityScheduling)
+				executor.execute(runnable);
+			else
+				throw new IllegalArgumentException("Must use Comparable<Runnable>!");
+		}
+	}
+	
+	public void execute(@Nonnull PrioritizedRunnable runnable) {
+		if (running.expectRunning())
+			executor.execute(runnable);
 	}
 	
 	public boolean isRunning() {
 		return running.isRunning();
 	}
 	
+	public interface PrioritizedRunnable extends Runnable, Comparable<PrioritizedRunnable> {
+		
+	}
+	
 	private static class ThreadExecutor {
 		
 		private final AtomicInteger runningThreads;
-		private final AtomicBoolean running;
 		private final BlockingQueue<Runnable> tasks;
 		private final List<Thread> threads;
 		private final int nThreads;
 		
 		public ThreadExecutor(boolean priorityScheduling, @Nonnegative int nThreads, @Nonnull ThreadFactory threadFactory) {
 			this.runningThreads = new AtomicInteger(0);
-			this.running = new AtomicBoolean(false);
 			if (priorityScheduling)
 				this.tasks = new PriorityBlockingQueue<>();
 			else
@@ -119,7 +128,6 @@ public class ThreadPool {
 		}
 		
 		public void start() {
-			running.set(true);
 			runningThreads.set(nThreads);
 			for (Thread t : threads) {
 				t.start();
@@ -127,7 +135,6 @@ public class ThreadPool {
 		}
 		
 		public void stop(boolean interrupt) {
-			running.set(false);
 			for (int i = 0; i < nThreads; i++) {
 				tasks.add(END_OF_QUEUE);
 			}
@@ -144,9 +151,7 @@ public class ThreadPool {
 		}
 		
 		public void execute(@Nonnull Runnable runnable) {
-			assert running.get();
-			if (running.get())
-				tasks.offer(runnable);
+			tasks.offer(runnable);
 		}
 		
 		public boolean awaitTermination(@Nonnegative long time) {
@@ -183,7 +188,7 @@ public class ThreadPool {
 		
 	}
 	
-	private static class EndOfQueueTask implements Runnable, Comparable<Runnable> {
+	private static class EndOfQueueTask implements PrioritizedRunnable {
 		
 		@Override
 		public void run() {
@@ -191,7 +196,7 @@ public class ThreadPool {
 		}
 		
 		@Override
-		public int compareTo(@Nonnull Runnable o) {
+		public int compareTo(@Nonnull PrioritizedRunnable o) {
 			return 1;
 		}
 		

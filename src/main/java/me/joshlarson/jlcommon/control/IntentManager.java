@@ -24,6 +24,7 @@
 package me.joshlarson.jlcommon.control;
 
 import me.joshlarson.jlcommon.concurrency.ThreadPool;
+import me.joshlarson.jlcommon.concurrency.ThreadPool.PrioritizedRunnable;
 import me.joshlarson.jlcommon.log.Log;
 
 import javax.annotation.CheckForNull;
@@ -189,7 +190,7 @@ public class IntentManager {
 		
 	}
 	
-	private class IntentRunner<E extends Intent> implements Comparable<IntentRunner>, Runnable {
+	private class IntentRunner<E extends Intent> implements PrioritizedRunnable {
 		
 		private final Consumer<E> r;
 		private final E i;
@@ -224,8 +225,10 @@ public class IntentManager {
 		}
 		
 		@Override
-		public int compareTo(@Nonnull IntentRunner r) {
-			return i.compareTo(r.i);
+		public int compareTo(@Nonnull PrioritizedRunnable r) {
+			if (r instanceof IntentRunner)
+				return i.compareTo(((IntentRunner) r).i);
+			return -1;
 		}
 		
 	}
