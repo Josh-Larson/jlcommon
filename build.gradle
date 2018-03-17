@@ -111,7 +111,7 @@ bintray {
 			name = projectVersion
 			desc = 'Common Java Library'
 			released = new Date()
-			vcsTag = 'v1.0'
+			vcsTag = 'v' + projectVersion
 		}
 	}
 }
