@@ -27,7 +27,11 @@ import me.joshlarson.jlcommon.log.Log;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.concurrent.ThreadFactory;
+import java.util.stream.Collectors;
 
 public class ThreadUtilities {
 	
@@ -45,6 +49,30 @@ public class ThreadUtilities {
 		} catch (Throwable t) {
 			Log.e(t);
 		}
+	}
+	
+	public static void printActiveThreads() {
+		ThreadGroup nibbleThreadGroup = Thread.currentThread().getThreadGroup();
+		int threadCount = nibbleThreadGroup.activeCount();
+		Thread[] threadsRaw = new Thread[threadCount];
+		threadCount = nibbleThreadGroup.enumerate(threadsRaw);
+		Collection<Thread> threads = Arrays.stream(threadsRaw, 0, threadCount).filter(t -> t.getState() != Thread.State.TERMINATED).collect(Collectors.toList());
+		int maxLength = threads.stream().mapToInt(t -> t.getName().length()).max().orElse(4);
+		if (maxLength < 4)
+			maxLength = 4;
+		
+		Log.w("Active Threads: %d", threads.size());
+		Log.w("+-%s---%s-+", createRepeatingDash(maxLength), createRepeatingDash(13));
+		Log.w("| %-" + maxLength + "s | %-13s |", "Name", "State");
+		Log.w("+-%s-+-%s-+", createRepeatingDash(maxLength), createRepeatingDash(13));
+		for (Thread t : threads) {
+			Log.w("| %-" + maxLength + "s | %-13s |", t.getName(), t.getState());
+		}
+		Log.w("+-%s---%s-+", createRepeatingDash(maxLength), createRepeatingDash(13));
+	}
+	
+	private static String createRepeatingDash(int count) {
+		return String.join("", Collections.nCopies(count, "-"));
 	}
 	
 	private static class CustomThreadFactory implements ThreadFactory {
