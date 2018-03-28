@@ -26,6 +26,7 @@ package me.joshlarson.jlcommon.control;
 import me.joshlarson.jlcommon.concurrency.Delay;
 import me.joshlarson.jlcommon.log.Log;
 
+import java.util.Arrays;
 import java.util.Collection;
 
 public abstract class Endpoint extends Manager {
@@ -40,6 +41,15 @@ public abstract class Endpoint extends Manager {
 	}
 	
 	/**
+	 * Starts, runs, and then gracefully stops all endpoints within the list
+	 *
+	 * @param endpoints the list of endpoints
+	 */
+	public static void startRunStop(Endpoint ... endpoints) {
+		startRunStop(Arrays.asList(endpoints));
+	}
+	
+	/**
 	 * Starts, runs, and then gracefully stops all endpoints within the collection
 	 *
 	 * @param endpoints the collection of endpoints
@@ -51,12 +61,22 @@ public abstract class Endpoint extends Manager {
 	}
 	
 	/**
+	 * Starts, runs, and then gracefully stops all endpoints within the list
+	 *
+	 * @param periodicSleepTime the time between isOperational checks during the run phase
+	 * @param endpoints         the list of endpoints
+	 */
+	public static void startRunStop(long periodicSleepTime, Endpoint ... endpoints) {
+		startRunStop(periodicSleepTime, Arrays.asList(endpoints));
+	}
+	
+	/**
 	 * Starts, runs, and then gracefully stops all endpoints within the collection
 	 *
-	 * @param endpoints         the collection of endpoints
 	 * @param periodicSleepTime the time between isOperational checks during the run phase
+	 * @param endpoints         the collection of endpoints
 	 */
-	public static void startRunStop(Collection<Endpoint> endpoints, long periodicSleepTime) {
+	public static void startRunStop(long periodicSleepTime, Collection<Endpoint> endpoints) {
 		if (start(endpoints))
 			run(endpoints, periodicSleepTime);
 		stop(endpoints);

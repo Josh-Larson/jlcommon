@@ -23,19 +23,19 @@
  ***********************************************************************************/
 package me.joshlarson.jlcommon.control;
 
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import java.util.function.Consumer;
 
 /**
  * A Service is a class that does a specific job for the application
  */
 public abstract class Service {
 	
-	private IntentManager intentManager;
-	
 	public Service() {
-		this.intentManager = IntentManager.getInstance();
+		
+	}
+	
+	protected void registerIntentHandlers(@Nonnull IntentManager intentManager) {
+		
 	}
 	
 	/**
@@ -71,9 +71,6 @@ public abstract class Service {
 	 * @return TRUE if termination was successful, FALSE otherwise
 	 */
 	public boolean terminate() {
-		IntentManager im = IntentManager.getInstance();
-		if (im != null)
-			im.terminate();
 		return true;
 	}
 	
@@ -87,34 +84,12 @@ public abstract class Service {
 	}
 	
 	/**
-	 * Registers for the intent using the specified consumer
-	 *
-	 * @param c        the class of intent to register for
-	 * @param consumer the consumer to run when the intent is fired
-	 * @param <T>      the type of intent to register for
+	 * Sets the intent manager for this service tree
+	 * 
+	 * @param intentManager the intent manager
 	 */
-	protected <T extends Intent> void registerForIntent(@Nonnull Class<T> c, @Nonnull Consumer<T> consumer) {
-		intentManager.registerForIntent(c, consumer);
-	}
-	
-	/**
-	 * Unregisters for the intent using the specified consumer
-	 *
-	 * @param c        the class of intent to unregister
-	 * @param consumer the consumer that was previous registered
-	 * @param <T>      the type of intent to unregister
-	 */
-	protected <T extends Intent> void unregisterForIntent(@Nonnull Class<T> c, @Nonnull Consumer<T> consumer) {
-		intentManager.unregisterForIntent(c, consumer);
-	}
-	
 	public void setIntentManager(@Nonnull IntentManager intentManager) {
-		this.intentManager = intentManager;
-	}
-	
-	@CheckForNull
-	public IntentManager getIntentManager() {
-		return intentManager;
+		registerIntentHandlers(intentManager);
 	}
 	
 }
