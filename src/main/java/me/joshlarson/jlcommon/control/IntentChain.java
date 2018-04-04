@@ -46,7 +46,6 @@ public class IntentChain {
 	}
 	
 	public IntentChain(IntentManager intentManager, @Nullable Intent i) {
-		Objects.requireNonNull(intentManager, "IntentManager is null");
 		this.intentManager = intentManager;
 		this.intent = new AtomicReference<>(null);
 	}
@@ -60,6 +59,7 @@ public class IntentChain {
 	}
 	
 	public void broadcastAfter(@Nonnull Intent i) {
+		Objects.requireNonNull(intentManager, "IntentManager is null");
 		i.broadcastAfterIntent(intent.getAndSet(i), intentManager);
 	}
 	
