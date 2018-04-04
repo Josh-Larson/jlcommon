@@ -24,43 +24,11 @@
 package me.joshlarson.jlcommon.control;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
-public class IntentChain {
+public interface IntentRegistry {
 	
-	private final IntentManager intentManager;
-	private final AtomicReference<Intent> intent;
-	
-	public IntentChain() {
-		this(IntentManager.getInstance());
-	}
-	
-	public IntentChain(IntentManager intentManager) {
-		this(intentManager, null);
-	}
-	
-	public IntentChain(@Nullable Intent i) {
-		this(IntentManager.getInstance(), i);
-	}
-	
-	public IntentChain(IntentManager intentManager, @Nullable Intent i) {
-		Objects.requireNonNull(intentManager, "IntentManager is null");
-		this.intentManager = intentManager;
-		this.intent = new AtomicReference<>(null);
-	}
-	
-	public void reset() {
-		intent.set(null);
-	}
-	
-	public void broadcastAfter(IntentManager intentManager, @Nonnull Intent i) {
-		i.broadcastAfterIntent(intent.getAndSet(i), intentManager);
-	}
-	
-	public void broadcastAfter(@Nonnull Intent i) {
-		i.broadcastAfterIntent(intent.getAndSet(i), intentManager);
-	}
+	<T extends Intent> void registerForIntent(@Nonnull Class<T> c, @Nonnull Consumer<T> r);
+	<T extends Intent> void unregisterForIntent(@Nonnull Class<T> c, @Nonnull Consumer<T> r);
 	
 }

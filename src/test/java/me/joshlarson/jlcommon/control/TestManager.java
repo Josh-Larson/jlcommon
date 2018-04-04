@@ -23,44 +23,49 @@
  ***********************************************************************************/
 package me.joshlarson.jlcommon.control;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicReference;
+import me.joshlarson.jlcommon.control.Manager.ManagerCreationException;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
-public class IntentChain {
+@RunWith(JUnit4.class)
+public class TestManager {
 	
-	private final IntentManager intentManager;
-	private final AtomicReference<Intent> intent;
-	
-	public IntentChain() {
-		this(IntentManager.getInstance());
+	@Test
+	public void testServiceCreation() {
+		Service s = new TestService();
 	}
 	
-	public IntentChain(IntentManager intentManager) {
-		this(intentManager, null);
+	@Test(expected=ManagerCreationException.class)
+	public void testManagerNoChildren() {
+		TestBadManager manager = new TestBadManager();
 	}
 	
-	public IntentChain(@Nullable Intent i) {
-		this(IntentManager.getInstance(), i);
+	@Test
+	public void testManagerSingleDepthChildren() {
+		TestManagerSingleDepth manager = new TestManagerSingleDepth();
+		Assert.assertEquals(1, manager.getChildren().size());
+		Assert.assertSame(TestService.class, manager.getChildren().get(0).getClass());
 	}
 	
-	public IntentChain(IntentManager intentManager, @Nullable Intent i) {
-		Objects.requireNonNull(intentManager, "IntentManager is null");
-		this.intentManager = intentManager;
-		this.intent = new AtomicReference<>(null);
+	@Test
+	public void testManagerMultipleDepthChildren() {
+		TestManagerMultipleDepth manager = new TestManagerMultipleDepth();
+		Assert.assertEquals(1, manager.getChildren().size());
+		Assert.assertSame(TestManagerSingleDepth.class, manager.getChildren().get(0).getClass());
+		TestManagerSingleDepth subManager = (TestManagerSingleDepth) manager.getChildren().get(0);
+		Assert.assertEquals(1, subManager.getChildren().size());
+		Assert.assertSame(TestService.class, subManager.getChildren().get(0).getClass());
 	}
 	
-	public void reset() {
-		intent.set(null);
-	}
+	public static class TestBadManager extends Manager {}
 	
-	public void broadcastAfter(IntentManager intentManager, @Nonnull Intent i) {
-		i.broadcastAfterIntent(intent.getAndSet(i), intentManager);
-	}
+	@ManagerStructure(children = { TestService.class})
+	public static class TestManagerSingleDepth extends Manager {}
 	
-	public void broadcastAfter(@Nonnull Intent i) {
-		i.broadcastAfterIntent(intent.getAndSet(i), intentManager);
-	}
+	@ManagerStructure(children = { TestManagerSingleDepth.class})
+	public static class TestManagerMultipleDepth extends Manager {}
 	
+	public static class TestService extends Service {}
 }

@@ -23,44 +23,69 @@
  ***********************************************************************************/
 package me.joshlarson.jlcommon.control;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicReference;
+import me.joshlarson.jlcommon.log.Log;
 
-public class IntentChain {
+import javax.annotation.Nonnull;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+import java.util.HashMap;
+import java.util.Map;
+
+public class IntentMultiplexer {
 	
-	private final IntentManager intentManager;
-	private final AtomicReference<Intent> intent;
+	private final Map<Class<?>, Method> methods;
+	private final Service service;
+	private final int expectedArgs;
 	
-	public IntentChain() {
-		this(IntentManager.getInstance());
+	public IntentMultiplexer(@Nonnull Service service, Class<?>... parameters) {
+		this.methods = new HashMap<>();
+		this.service = service;
+		this.expectedArgs = parameters.length;
+		
+		getMethods(methods, service.getClass(), parameters);
 	}
 	
-	public IntentChain(IntentManager intentManager) {
-		this(intentManager, null);
+	public void call(Object... args) {
+		if (args.length != expectedArgs)
+			throw new IllegalArgumentException("Invalid arguments!");
+		try {
+			Method method = methods.get(args[args.length-1].getClass());
+			if (method != null)
+				method.invoke(service, args);
+		} catch (InvocationTargetException | IllegalAccessException e) {
+			Log.e(e);
+		}
 	}
 	
-	public IntentChain(@Nullable Intent i) {
-		this(IntentManager.getInstance(), i);
+	@SuppressWarnings("unchecked")
+	private static void getMethods(Map<Class<?>, Method> methods, Class<? extends Service> klass, Class<?>... parameters) {
+		method_loop:
+		for (Method m : klass.getDeclaredMethods()) {
+			if (!m.isAnnotationPresent(Multiplexer.class))
+				continue;
+			
+			Parameter[] params = m.getParameters();
+			if (params.length != parameters.length)
+				continue;
+			for (int i = 0; i < params.length; i++) {
+				if (!parameters[i].isAssignableFrom(params[i].getType()))
+					continue method_loop;
+			}
+			
+			m.setAccessible(true);
+			methods.put(params[params.length-1].getType(), m);
+		}
+		Class<?> superKlass = klass.getSuperclass();
+		if (Service.class.isAssignableFrom(superKlass))
+			getMethods(methods, (Class<? extends Service>) superKlass, parameters);
 	}
 	
-	public IntentChain(IntentManager intentManager, @Nullable Intent i) {
-		Objects.requireNonNull(intentManager, "IntentManager is null");
-		this.intentManager = intentManager;
-		this.intent = new AtomicReference<>(null);
-	}
-	
-	public void reset() {
-		intent.set(null);
-	}
-	
-	public void broadcastAfter(IntentManager intentManager, @Nonnull Intent i) {
-		i.broadcastAfterIntent(intent.getAndSet(i), intentManager);
-	}
-	
-	public void broadcastAfter(@Nonnull Intent i) {
-		i.broadcastAfterIntent(intent.getAndSet(i), intentManager);
+	@Retention(RetentionPolicy.RUNTIME)
+	public @interface Multiplexer {
+		
 	}
 	
 }

@@ -23,44 +23,48 @@
  ***********************************************************************************/
 package me.joshlarson.jlcommon.control;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicReference;
-
-public class IntentChain {
+public interface ServiceBase {
 	
-	private final IntentManager intentManager;
-	private final AtomicReference<Intent> intent;
+	/**
+	 * Initializes this service. If the service returns false on this method then the initialization failed and may not work as intended.
+	 *
+	 * @return TRUE if initialization was successful, FALSE otherwise
+	 */
+	boolean initialize();
 	
-	public IntentChain() {
-		this(IntentManager.getInstance());
-	}
+	/**
+	 * Starts this service. If the service returns false on this method then the service failed to start and may not work as intended.
+	 *
+	 * @return TRUE if starting was successful, FALSE otherwise
+	 */
+	boolean start();
 	
-	public IntentChain(IntentManager intentManager) {
-		this(intentManager, null);
-	}
+	/**
+	 * Stops the service. If the service returns false on this method then the service failed to stop and may not have fully locked down.
+	 *
+	 * @return TRUE if stopping was successful, FALSe otherwise
+	 */
+	boolean stop();
 	
-	public IntentChain(@Nullable Intent i) {
-		this(IntentManager.getInstance(), i);
-	}
+	/**
+	 * Terminates this service. If the service returns false on this method then the service failed to shut down and resources may not have been cleaned up.
+	 *
+	 * @return TRUE if termination was successful, FALSE otherwise
+	 */
+	boolean terminate();
 	
-	public IntentChain(IntentManager intentManager, @Nullable Intent i) {
-		Objects.requireNonNull(intentManager, "IntentManager is null");
-		this.intentManager = intentManager;
-		this.intent = new AtomicReference<>(null);
-	}
+	/**
+	 * Determines whether or not this service is operational
+	 *
+	 * @return TRUE if this service is operational, FALSE otherwise
+	 */
+	boolean isOperational();
 	
-	public void reset() {
-		intent.set(null);
-	}
-	
-	public void broadcastAfter(IntentManager intentManager, @Nonnull Intent i) {
-		i.broadcastAfterIntent(intent.getAndSet(i), intentManager);
-	}
-	
-	public void broadcastAfter(@Nonnull Intent i) {
-		i.broadcastAfterIntent(intent.getAndSet(i), intentManager);
-	}
+	/**
+	 * Sets the intent registry for this service tree
+	 * 
+	 * @param intentManager the intent manager
+	 */
+	void setIntentManager(IntentManager intentManager);
 	
 }
