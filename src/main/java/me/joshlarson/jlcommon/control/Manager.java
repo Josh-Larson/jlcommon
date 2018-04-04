@@ -57,7 +57,7 @@ public abstract class Manager implements ServiceBase {
 			} catch (NoSuchMethodException e) {
 				throw new ManagerCreationException("No valid default constructor for " + service.getName());
 			} catch (IllegalAccessException | InvocationTargetException | InstantiationException e) {
-				throw new ManagerCreationException("Failed to instantiate child " + service.getName() + ". " + e.getClass().getName() + ": " + e.getMessage());
+				throw new RuntimeException(e);
 			}
 		}
 	}
