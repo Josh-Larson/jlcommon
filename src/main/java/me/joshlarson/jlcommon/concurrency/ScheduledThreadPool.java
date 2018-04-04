@@ -60,6 +60,10 @@ public class ScheduledThreadPool {
 		executor.shutdownNow();
 	}
 	
+	public boolean isRunning() {
+		return running.isRunning();
+	}
+	
 	public void executeWithFixedRate(@Nonnegative long initialDelay, @Nonnegative long time, @Nonnull Runnable runnable) {
 		if (!running.expectRunning())
 			return;

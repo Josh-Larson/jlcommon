@@ -46,6 +46,10 @@ public class BasicScheduledThread {
 		threadPool.executeWithFixedDelay(initialDelay, periodicDelay, runnable);
 	}
 	
+	public boolean isRunning() {
+		return threadPool.isRunning();
+	}
+	
 	public void stop() {
 		threadPool.stop();
 	}

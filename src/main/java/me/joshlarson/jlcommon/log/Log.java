@@ -64,9 +64,9 @@ public class Log {
 	
 	@Nonnull
 	private static synchronized Log getInstance() {
-		if (INSTANCE == null)
-			INSTANCE = new Log();
-		return INSTANCE;
+		if (INSTANCE != null)
+			return INSTANCE;
+		return INSTANCE = new Log();
 	}
 	
 	public static void addWrapper(@Nonnull LogWrapper wrapper) {
@@ -80,7 +80,7 @@ public class Log {
 	/**
 	 * Logs the string to the server log file, formatted to display the log severity, time and message.
 	 *
-	 * @param level the log level of this message between VERBOSE and ASSERT
+	 * @param level the log level of this message between DATA and ASSERT
 	 * @param str   the format string for the log
 	 * @param args  the string format arguments, if specified
 	 */
@@ -91,23 +91,23 @@ public class Log {
 	}
 	
 	/**
-	 * Logs the string to the server log file, formatted to display the log severity as VERBOSE, as well as the time and message.
+	 * Logs the string to the server log file, formatted to display the log severity as TRACE, as well as the time and message.
 	 *
 	 * @param message the format string for the log
 	 * @param args    the string format arguments, if specified
 	 */
-	public static void v(@Nonnull String message, Object... args) {
-		log(LogLevel.VERBOSE, message, args);
+	public static void t(@Nonnull String message, Object... args) {
+		log(LogLevel.TRACE, message, args);
 	}
 	
 	/**
-	 * Logs the string to the server log file, formatted to display the log severity as DEBUG, as well as the time and message.
+	 * Logs the string to the server log file, formatted to display the log severity as DATA, as well as the time and message.
 	 *
 	 * @param message the format string for the log
 	 * @param args    the string format arguments, if specified
 	 */
 	public static void d(@Nonnull String message, Object... args) {
-		log(LogLevel.DEBUG, message, args);
+		log(LogLevel.DATA, message, args);
 	}
 	
 	/**
@@ -206,8 +206,8 @@ public class Log {
 	}
 	
 	public enum LogLevel {
-		VERBOSE('V'),
-		DEBUG('D'),
+		TRACE('T'),
+		DATA('D'),
 		INFO('I'),
 		WARN('W'),
 		ERROR('E'),

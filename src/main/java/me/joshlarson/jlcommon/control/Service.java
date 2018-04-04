@@ -23,73 +23,117 @@
  ***********************************************************************************/
 package me.joshlarson.jlcommon.control;
 
+import me.joshlarson.jlcommon.log.Log;
+
 import javax.annotation.Nonnull;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Parameter;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 /**
  * A Service is a class that does a specific job for the application
  */
-public abstract class Service {
+public abstract class Service implements ServiceBase {
+	
+	private final Map<Class<? extends Intent>, List<Consumer<? extends Intent>>> registration;
+	private final AtomicReference <IntentManager> intentManager;
 	
 	public Service() {
-		
+		this.registration = new HashMap<>();
+		this.intentManager = new AtomicReference<>(null);
 	}
 	
-	protected void registerIntentHandlers(@Nonnull IntentManager intentManager) {
-		
-	}
-	
-	/**
-	 * Initializes this service. If the service returns false on this method then the initialization failed and may not work as intended.
-	 *
-	 * @return TRUE if initialization was successful, FALSE otherwise
-	 */
+	@Override
 	public boolean initialize() {
 		return true;
 	}
 	
-	/**
-	 * Starts this service. If the service returns false on this method then the service failed to start and may not work as intended.
-	 *
-	 * @return TRUE if starting was successful, FALSE otherwise
-	 */
+	@Override
 	public boolean start() {
 		return true;
 	}
 	
-	/**
-	 * Stops the service. If the service returns false on this method then the service failed to stop and may not have fully locked down.
-	 *
-	 * @return TRUE if stopping was successful, FALSe otherwise
-	 */
+	@Override
 	public boolean stop() {
 		return true;
 	}
 	
-	/**
-	 * Terminates this service. If the service returns false on this method then the service failed to shut down and resources may not have been cleaned up.
-	 *
-	 * @return TRUE if termination was successful, FALSE otherwise
-	 */
+	@Override
 	public boolean terminate() {
 		return true;
 	}
 	
-	/**
-	 * Determines whether or not this service is operational
-	 *
-	 * @return TRUE if this service is operational, FALSE otherwise
-	 */
+	@Override
 	public boolean isOperational() {
 		return true;
 	}
 	
-	/**
-	 * Sets the intent manager for this service tree
-	 * 
-	 * @param intentManager the intent manager
-	 */
-	public void setIntentManager(@Nonnull IntentManager intentManager) {
-		registerIntentHandlers(intentManager);
+	@Override
+	public void setIntentManager(IntentManager intentManager) {
+		IntentManager prev = this.intentManager.getAndSet(intentManager);
+		if (prev != null) {
+			unregisterIntentHandlers(prev);
+		}
+		if (intentManager != null) {
+			registerIntentHandlers(intentManager);
+		}
+	}
+	
+	protected IntentManager getIntentManager() {
+		return intentManager.get();
+	}
+	
+	@SuppressWarnings("unchecked")
+	private void unregisterIntentHandlers(@Nonnull IntentRegistry registry) {
+		for (Entry<Class<? extends Intent>, List<Consumer<? extends Intent>>> e : registration.entrySet()) {
+			e.getValue().forEach(c -> registry.unregisterForIntent((Class<Intent>)e.getKey(), (Consumer<Intent>)c));
+		}
+		registration.clear();
+	}
+	
+	@SuppressWarnings("unchecked")
+	private void registerIntentHandlers(@Nonnull IntentRegistry registry) {
+		registerIntentHandlers(getClass(), registry);
+	}
+	
+	@SuppressWarnings("unchecked")
+	private void registerIntentHandlers(@Nonnull Class<? extends Service> klass, @Nonnull IntentRegistry registry) {
+		for (Method m : klass.getDeclaredMethods()) {
+			if (m.isAnnotationPresent(IntentHandler.class)) {
+				if (m.getParameterCount() == 1) {
+					Parameter p = m.getParameters()[0];
+					Class<?> paramClass = p.getType();
+					if (Intent.class.isAssignableFrom(paramClass)) {
+						if (Modifier.isProtected(m.getModifiers()) || Modifier.isPublic(m.getModifiers()))
+							Log.w("Intent handler '%s::%s' is not (package) private!", klass.getName(), m.getName());
+						m.setAccessible(true);
+						Class<Intent> intentClass = (Class<Intent>) paramClass;
+						Consumer<Intent> intentConsumer = i -> invoke(m, i, paramClass);
+						registry.registerForIntent(intentClass, intentConsumer);
+						registration.computeIfAbsent(intentClass, c -> new CopyOnWriteArrayList<>()).add(intentConsumer);
+					}
+				}
+			}
+		}
+		Class<?> superKlass = klass.getSuperclass();
+		if (Service.class.isAssignableFrom(superKlass))
+			registerIntentHandlers((Class<? extends Service>) superKlass, registry);
+	}
+	
+	private void invoke(Method m, Intent intent, Class<?> klass) {
+		try {
+			m.invoke(this, klass.cast(intent));
+		} catch (IllegalAccessException | InvocationTargetException e) {
+			throw new RuntimeException(e);
+		}
 	}
 	
 }

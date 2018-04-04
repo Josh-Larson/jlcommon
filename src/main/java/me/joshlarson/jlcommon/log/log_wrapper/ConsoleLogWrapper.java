@@ -34,10 +34,10 @@ public class ConsoleLogWrapper implements LogWrapper {
 	private final Log.LogLevel level;
 	
 	/**
-	 * Creates a ConsoleLogWrapper with a LogLevel of VERBOSE
+	 * Creates a ConsoleLogWrapper with a LogLevel of TRACE
 	 */
 	public ConsoleLogWrapper() {
-		this(LogLevel.VERBOSE);
+		this(LogLevel.TRACE);
 	}
 	
 	/**

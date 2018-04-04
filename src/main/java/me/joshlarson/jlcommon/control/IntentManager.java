@@ -35,40 +35,38 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
-public class IntentManager {
+public class IntentManager implements IntentRegistry {
 	
 	private static final AtomicReference<IntentManager> INSTANCE = new AtomicReference<>(null);
 	
 	private final Map<Class<? extends Intent>, List<Consumer<? extends Intent>>> intentRegistrations;
 	private final IntentSpeedRecorder speedRecorder;
 	private final ThreadPool processThreads;
-	private final AtomicBoolean initialized;
 	
 	public IntentManager(@Nonnegative int threadCount) {
+		this(false, threadCount);
+	}
+	
+	public IntentManager(boolean priorityScheduling, @Nonnegative int threadCount) {
 		this.intentRegistrations = new ConcurrentHashMap<>();
 		this.speedRecorder = new IntentSpeedRecorder();
-		this.processThreads = new ThreadPool(true, threadCount, "intent-processor-%d");
-		this.initialized = new AtomicBoolean(false);
+		this.processThreads = new ThreadPool(priorityScheduling, threadCount, "intent-processor-%d");
 		
 		this.processThreads.setPriority(8);
 	}
 	
 	public void initialize() {
-		if (initialized.getAndSet(true))
-			return;
 		processThreads.start();
 	}
 	
 	public void terminate() {
-		if (!initialized.getAndSet(false))
-			return;
 		processThreads.stop(true);
+		processThreads.awaitTermination(500);
 	}
 	
 	public void setPriority(@Nonnegative int priority) {
@@ -88,19 +86,21 @@ public class IntentManager {
 	@SuppressWarnings("unchecked")
 	public <E extends Intent> void broadcastIntent(@Nonnull E i) {
 		List<Consumer<? extends Intent>> receivers = intentRegistrations.get(i.getClass());
-		if (receivers == null || !processThreads.isRunning())
+		if (receivers == null || !processThreads.isRunning() || receivers.isEmpty()) {
+			i.markAsComplete(this);
 			return;
+		}
 		
 		AtomicInteger remaining = new AtomicInteger(receivers.size());
 		receivers.forEach(r -> processThreads.execute(new IntentRunner<>((Consumer<E>) r, i, remaining)));
 	}
 	
-	@SuppressWarnings("unchecked")
+	@Override
 	public <T extends Intent> void registerForIntent(@Nonnull Class<T> c, @Nonnull Consumer<T> r) {
-		List<Consumer<? extends Intent>> intents = intentRegistrations.computeIfAbsent(c, s -> new CopyOnWriteArrayList<>());
-		intents.add(r);
+		intentRegistrations.computeIfAbsent(c, s -> new CopyOnWriteArrayList<>()).add(r);
 	}
 	
+	@Override
 	public <T extends Intent> void unregisterForIntent(@Nonnull Class<T> c, @Nonnull Consumer<T> r) {
 		List<Consumer<? extends Intent>> intents = intentRegistrations.get(c);
 		if (intents == null)
@@ -113,9 +113,9 @@ public class IntentManager {
 		return INSTANCE.get();
 	}
 	
-	public static void setInstance(@Nonnull IntentManager intentManager) {
+	public static void setInstance(IntentManager intentManager) {
 		IntentManager prev = INSTANCE.getAndSet(intentManager);
-		if (prev != null)
+		if (prev != null && prev.processThreads.isRunning())
 			prev.terminate();
 	}
 	

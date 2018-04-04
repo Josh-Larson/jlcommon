@@ -23,60 +23,55 @@
  ***********************************************************************************/
 package me.joshlarson.jlcommon.control;
 
+import me.joshlarson.jlcommon.concurrency.Delay;
 import me.joshlarson.jlcommon.log.Log;
 
 import javax.annotation.Nonnull;
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.*;
 
 /**
- * A Manager is a class that will manage services, and generally controls the program as a whole
+ * A Manager is a class that encourages a tree structure to services
  */
-public abstract class Manager extends Service {
+public abstract class Manager implements ServiceBase {
 	
-	private final List<Service> initialized;
-	private final List<Service> started;
-	private final List<Service> children;
+	private final List<ServiceBase> children;
+	private final List<ServiceBase> initialized;
+	private final List<ServiceBase> started;
 	
 	public Manager() {
-		initialized = new CopyOnWriteArrayList<>();
-		started = new CopyOnWriteArrayList<>();
 		children = new ArrayList<>();
+		initialized = new ArrayList<>();
+		started = new ArrayList<>();
 		
 		ManagerStructure annotation = getClass().getAnnotation(ManagerStructure.class);
 		if (annotation == null)
 			throw new ManagerCreationException("Manager must have defined children!");
 		
-		Class<? extends Service> [] annotatedChildren = annotation.children();
-		for (Class<? extends Service> service : annotatedChildren) {
+		Class<? extends ServiceBase>[] annotatedChildren = annotation.children();
+		for (Class<? extends ServiceBase> service : annotatedChildren) {
 			if (service == null)
-				throw new NullPointerException("Service is null!");
+				throw new NullPointerException("Child is null!");
 			try {
 				children.add(service.getConstructor().newInstance());
 			} catch (NoSuchMethodException e) {
 				throw new ManagerCreationException("No valid default constructor for " + service.getName());
 			} catch (IllegalAccessException | InvocationTargetException | InstantiationException e) {
-				throw new ManagerCreationException("Failed to instantiate service "+service.getName()+". "+e.getClass().getName() + ": " + e.getMessage());
+				throw new ManagerCreationException("Failed to instantiate child " + service.getName() + ". " + e.getClass().getName() + ": " + e.getMessage());
 			}
 		}
 	}
 	
-	protected final void registerIntentHandlers(@Nonnull IntentManager intentManager) {
-		
-	}
-	
 	/**
-	 * Initializes this manager. If the manager returns false on this method then the initialization failed and may not work as intended. This will initialize all children automatically.
+	 * Initializes this manager and all children
 	 *
 	 * @return TRUE if initialization was successful, FALSE otherwise
 	 */
 	@Override
 	public final boolean initialize() {
-		for (Service child : children) {
+		for (ServiceBase child : children) {
 			try {
+				Log.t("%s: Initializing %s...", getClass().getSimpleName(), child.getClass().getSimpleName());
 				if (!child.initialize()) {
 					Log.e(child.getClass().getSimpleName() + " failed to initialize!");
 					return false;
@@ -92,14 +87,15 @@ public abstract class Manager extends Service {
 	}
 	
 	/**
-	 * Starts this manager. If the manager returns false on this method then the manger failed to start and may not work as intended. This will start all children automatically.
+	 * Starts this manager and all children
 	 *
 	 * @return TRUE if starting was successful, FALSE otherwise
 	 */
 	@Override
 	public final boolean start() {
-		for (Service child : children) {
+		for (ServiceBase child : children) {
 			try {
+				Log.t("%s: Starting %s...", getClass().getSimpleName(), child.getClass().getSimpleName());
 				if (!child.start()) {
 					Log.e(child.getClass().getSimpleName() + " failed to start!");
 					return false;
@@ -115,15 +111,16 @@ public abstract class Manager extends Service {
 	}
 	
 	/**
-	 * Stops this manager. If the manager returns false on this method then the manger failed to stop and may not have fully locked down. This will start all children automatically.
+	 * Stops this manager and all children
 	 *
 	 * @return TRUE if stopping was successful, FALSE otherwise
 	 */
 	@Override
 	public final boolean stop() {
 		boolean success = true;
-		for (Service child : started) {
+		for (ServiceBase child : started) {
 			try {
+				Log.t("%s: Stopping %s...", getClass().getSimpleName(), child.getClass().getSimpleName());
 				if (!child.stop()) {
 					Log.e(child.getClass().getSimpleName() + " failed to stop!");
 					success = false;
@@ -134,20 +131,21 @@ public abstract class Manager extends Service {
 				success = false;
 			}
 		}
+		started.clear();
 		return success;
 	}
 	
 	/**
-	 * Terminates this manager. If the manager returns false on this method then the manager failed to shut down and resources may not have been cleaned up. This will terminate all children
-	 * automatically.
+	 * Terminates this manager and all children
 	 *
 	 * @return TRUE if termination was successful, FALSE otherwise
 	 */
 	@Override
 	public final boolean terminate() {
 		boolean success = true;
-		for (Service child : initialized) {
+		for (ServiceBase child : initialized) {
 			try {
+				Log.t("%s: Terminating %s...", getClass().getSimpleName(), child.getClass().getSimpleName());
 				if (!child.terminate()) {
 					Log.e(child.getClass().getSimpleName() + " failed to terminate!");
 					success = false;
@@ -158,39 +156,167 @@ public abstract class Manager extends Service {
 				success = false;
 			}
 		}
+		initialized.clear();
 		return success;
 	}
 	
 	/**
-	 * Determines whether or not this manager is operational
+	 * Determines whether or not this manager and all children are operational
 	 *
 	 * @return TRUE if this manager is operational, FALSE otherwise
 	 */
 	@Override
 	public final boolean isOperational() {
-		for (Service child : children) {
+		for (ServiceBase child : children) {
 			if (!child.isOperational())
 				return false;
 		}
 		return true;
 	}
 	
-	@Nonnull
-	public final List<Service> getChildren() {
-		return Collections.unmodifiableList(children);
-	}
-	
+	/**
+	 * Sets the intent registry for each child in the manager
+	 *
+	 * @param intentManager intentManager
+	 */
 	@Override
-	public void setIntentManager(@Nonnull IntentManager intentManager) {
-		super.setIntentManager(intentManager);
-		for (Service s : children) {
+	public void setIntentManager(IntentManager intentManager) {
+		for (ServiceBase s : children) {
 			s.setIntentManager(intentManager);
 		}
 	}
 	
+	/**
+	 * Returns a list of each child in an unmodifiable list
+	 *
+	 * @return the unmodifiable list of children
+	 */
+	@Nonnull
+	public final List<ServiceBase> getChildren() {
+		return Collections.unmodifiableList(children);
+	}
+	
+	/**
+	 * Starts, runs, and then gracefully stops all managers within the list
+	 *
+	 * @param managers the list of managers
+	 */
+	public static void startRunStop(Manager ... managers) {
+		startRunStop(Arrays.asList(managers));
+	}
+	
+	/**
+	 * Starts, runs, and then gracefully stops all managers within the collection
+	 *
+	 * @param managers the collection of managers
+	 */
+	public static void startRunStop(Collection<Manager> managers) {
+		if (start(managers))
+			run(managers);
+		stop(managers);
+	}
+	
+	/**
+	 * Starts, runs, and then gracefully stops all managers within the list
+	 *
+	 * @param periodicSleepTime the time between isOperational checks during the run phase
+	 * @param managers          the list of managers
+	 */
+	public static void startRunStop(long periodicSleepTime, Manager ... managers) {
+		startRunStop(periodicSleepTime, Arrays.asList(managers));
+	}
+	
+	/**
+	 * Starts, runs, and then gracefully stops all managers within the collection
+	 *
+	 * @param periodicSleepTime the time between isOperational checks during the run phase
+	 * @param managers          the collection of managers
+	 */
+	public static void startRunStop(long periodicSleepTime, Collection<Manager> managers) {
+		if (start(managers))
+			run(managers, periodicSleepTime);
+		stop(managers);
+	}
+	
+	/**
+	 * Attempts to start each of the managers in the collection
+	 *
+	 * @param managers the collection of managers
+	 * @return TRUE if each endpoint was successfully started, FALSE otherwise
+	 */
+	public static boolean start(Collection<Manager> managers) {
+		Log.i("Starting...");
+		for (Manager m : managers) {
+			try {
+				if (!m.initialize() || !m.start()) {
+					Log.e("Failed to start endpoint: %s", m.getClass().getName());
+					return false;
+				}
+			} catch (Throwable t) {
+				Log.e("Caught exception during start. Manager: %s", m.getClass().getName());
+				Log.e(t);
+				return false;
+			}
+		}
+		Log.i("Started.");
+		return true;
+	}
+	
+	/**
+	 * Runs each of the managers in the collection with the default periodicSleepTime of 100ms
+	 *
+	 * @param managers the collection of managers
+	 */
+	public static void run(Collection<Manager> managers) {
+		run(managers, 100);
+	}
+	
+	/**
+	 * Runs each of the managers in the collection with the specified periodicSleepTime
+	 *
+	 * @param managers          the collection of managers
+	 * @param periodicSleepTime the time to sleep between isOperational calls
+	 */
+	public static void run(Collection<Manager> managers, long periodicSleepTime) {
+		while (Delay.sleepMilli(periodicSleepTime)) {
+			for (Manager m : managers) {
+				try {
+					if (!m.isOperational()) {
+						Log.e("Manager '%s' is no longer operational.", m.getClass().getName());
+						return;
+					}
+				} catch (Throwable t) {
+					Log.e("Caught exception during isOperational. Manager: %s", m.getClass().getName());
+					Log.e(t);
+					return;
+				}
+			}
+		}
+		Delay.clearInterrupted();
+	}
+	
+	/**
+	 * Attempts to stop each of the managers in the collection
+	 *
+	 * @param managers the collection of managers
+	 */
+	public static void stop(Collection<Manager> managers) {
+		Log.i("Stopping...");
+		for (Manager e : managers) {
+			try {
+				e.stop();
+				e.terminate();
+			} catch (Throwable t) {
+				Log.e("Caught exception during stop. Manager: %s", e.getClass().getName());
+				Log.e(t);
+			}
+		}
+		Log.i("Stopped.");
+	}
+	
 	public static class ManagerCreationException extends RuntimeException {
 		
-		public ManagerCreationException(String message) {
+		ManagerCreationException(String message) {
 			super(message);
 		}
 		
