@@ -65,7 +65,11 @@ public class IntentManager implements IntentRegistry {
 	}
 	
 	public void terminate() {
-		processThreads.stop(true);
+		terminate(true);
+	}
+	
+	public void terminate(boolean interrupt) {
+		processThreads.stop(interrupt);
 		processThreads.awaitTermination(500);
 	}
 	
