@@ -168,8 +168,10 @@ public abstract class Manager implements ServiceBase {
 	@Override
 	public final boolean isOperational() {
 		for (ServiceBase child : children) {
-			if (!child.isOperational())
+			if (!child.isOperational()) {
+				Log.e("Child '%s' is no longer operational.", child.getClass().getName());
 				return false;
+			}
 		}
 		return true;
 	}
@@ -197,63 +199,63 @@ public abstract class Manager implements ServiceBase {
 	}
 	
 	/**
-	 * Starts, runs, and then gracefully stops all managers within the list
+	 * Starts, runs, and then gracefully stops all services within the list
 	 *
-	 * @param managers the list of managers
+	 * @param services the list of services
 	 */
-	public static void startRunStop(Manager ... managers) {
-		startRunStop(Arrays.asList(managers));
+	public static void startRunStop(ServiceBase ... services) {
+		startRunStop(Arrays.asList(services));
 	}
 	
 	/**
-	 * Starts, runs, and then gracefully stops all managers within the collection
+	 * Starts, runs, and then gracefully stops all services within the collection
 	 *
-	 * @param managers the collection of managers
+	 * @param services the collection of services
 	 */
-	public static void startRunStop(Collection<Manager> managers) {
-		if (start(managers))
-			run(managers);
-		stop(managers);
+	public static void startRunStop(Collection<ServiceBase> services) {
+		if (start(services))
+			run(services);
+		stop(services);
 	}
 	
 	/**
-	 * Starts, runs, and then gracefully stops all managers within the list
+	 * Starts, runs, and then gracefully stops all services within the list
 	 *
 	 * @param periodicSleepTime the time between isOperational checks during the run phase
-	 * @param managers          the list of managers
+	 * @param services          the list of services
 	 */
-	public static void startRunStop(long periodicSleepTime, Manager ... managers) {
-		startRunStop(periodicSleepTime, Arrays.asList(managers));
+	public static void startRunStop(long periodicSleepTime, ServiceBase ... services) {
+		startRunStop(periodicSleepTime, Arrays.asList(services));
 	}
 	
 	/**
-	 * Starts, runs, and then gracefully stops all managers within the collection
+	 * Starts, runs, and then gracefully stops all services within the collection
 	 *
 	 * @param periodicSleepTime the time between isOperational checks during the run phase
-	 * @param managers          the collection of managers
+	 * @param services          the collection of services
 	 */
-	public static void startRunStop(long periodicSleepTime, Collection<Manager> managers) {
-		if (start(managers))
-			run(managers, periodicSleepTime);
-		stop(managers);
+	public static void startRunStop(long periodicSleepTime, Collection<ServiceBase> services) {
+		if (start(services))
+			run(services, periodicSleepTime);
+		stop(services);
 	}
 	
 	/**
-	 * Attempts to start each of the managers in the collection
+	 * Attempts to start each of the services in the collection
 	 *
-	 * @param managers the collection of managers
+	 * @param services the collection of services
 	 * @return TRUE if each endpoint was successfully started, FALSE otherwise
 	 */
-	public static boolean start(Collection<Manager> managers) {
+	public static boolean start(Collection<ServiceBase> services) {
 		Log.i("Starting...");
-		for (Manager m : managers) {
+		for (ServiceBase s : services) {
 			try {
-				if (!m.initialize() || !m.start()) {
-					Log.e("Failed to start endpoint: %s", m.getClass().getName());
+				if (!s.initialize() || !s.start()) {
+					Log.e("Failed to start endpoint: %s", s.getClass().getName());
 					return false;
 				}
 			} catch (Throwable t) {
-				Log.e("Caught exception during start. Manager: %s", m.getClass().getName());
+				Log.e("Caught exception during start. Service: %s", s.getClass().getName());
 				Log.e(t);
 				return false;
 			}
@@ -263,30 +265,30 @@ public abstract class Manager implements ServiceBase {
 	}
 	
 	/**
-	 * Runs each of the managers in the collection with the default periodicSleepTime of 100ms
+	 * Runs each of the services in the collection with the default periodicSleepTime of 100ms
 	 *
-	 * @param managers the collection of managers
+	 * @param services the collection of services
 	 */
-	public static void run(Collection<Manager> managers) {
-		run(managers, 100);
+	public static void run(Collection<ServiceBase> services) {
+		run(services, 100);
 	}
 	
 	/**
-	 * Runs each of the managers in the collection with the specified periodicSleepTime
+	 * Runs each of the services in the collection with the specified periodicSleepTime
 	 *
-	 * @param managers          the collection of managers
+	 * @param services          the collection of services
 	 * @param periodicSleepTime the time to sleep between isOperational calls
 	 */
-	public static void run(Collection<Manager> managers, long periodicSleepTime) {
+	public static void run(Collection<ServiceBase> services, long periodicSleepTime) {
 		while (Delay.sleepMilli(periodicSleepTime)) {
-			for (Manager m : managers) {
+			for (ServiceBase s : services) {
 				try {
-					if (!m.isOperational()) {
-						Log.e("Manager '%s' is no longer operational.", m.getClass().getName());
+					if (!s.isOperational()) {
+						Log.e("Manager '%s' is no longer operational.", s.getClass().getName());
 						return;
 					}
 				} catch (Throwable t) {
-					Log.e("Caught exception during isOperational. Manager: %s", m.getClass().getName());
+					Log.e("Caught exception during isOperational. Service: %s", s.getClass().getName());
 					Log.e(t);
 					return;
 				}
@@ -296,18 +298,18 @@ public abstract class Manager implements ServiceBase {
 	}
 	
 	/**
-	 * Attempts to stop each of the managers in the collection
+	 * Attempts to stop each of the services in the collection
 	 *
-	 * @param managers the collection of managers
+	 * @param services the collection of services
 	 */
-	public static void stop(Collection<Manager> managers) {
+	public static void stop(Collection<ServiceBase> services) {
 		Log.i("Stopping...");
-		for (Manager e : managers) {
+		for (ServiceBase s : services) {
 			try {
-				e.stop();
-				e.terminate();
+				s.stop();
+				s.terminate();
 			} catch (Throwable t) {
-				Log.e("Caught exception during stop. Manager: %s", e.getClass().getName());
+				Log.e("Caught exception during stop. Service: %s", s.getClass().getName());
 				Log.e(t);
 			}
 		}
