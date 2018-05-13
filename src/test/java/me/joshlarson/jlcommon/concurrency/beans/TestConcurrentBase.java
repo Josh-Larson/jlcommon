@@ -23,8 +23,6 @@
  ***********************************************************************************/
 package me.joshlarson.jlcommon.concurrency.beans;
 
-import javafx.beans.property.SimpleIntegerProperty;
-import javafx.beans.property.SimpleStringProperty;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -150,24 +148,6 @@ public class TestConcurrentBase {
 		
 		Assert.assertEquals(str1, str2);
 		Assert.assertEquals("test", str1.toString());
-	}
-	
-	@Test
-	public void testBeanIntegration() {
-		SimpleStringProperty ssp = new SimpleStringProperty("");
-		SimpleIntegerProperty sip = new SimpleIntegerProperty(0);
-		ConcurrentInteger ci = new ConcurrentInteger();
-		
-		Assert.assertEquals("", ssp.get());
-		Assert.assertEquals(0, sip.get());
-		Assert.assertEquals(0, ci.getValue());
-		ci.addListener(sip::set);
-		ci.addTransformListener(String::valueOf, ssp::set);
-		
-		ci.set(10);
-		Assert.assertEquals("10", ssp.get());
-		Assert.assertEquals(10, sip.get());
-		Assert.assertEquals(10, ci.getValue());
 	}
 	
 	@Test
