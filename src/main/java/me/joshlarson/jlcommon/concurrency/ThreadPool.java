@@ -24,9 +24,8 @@
 package me.joshlarson.jlcommon.concurrency;
 
 import me.joshlarson.jlcommon.utilities.ThreadUtilities;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnegative;
-import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -46,11 +45,11 @@ public class ThreadPool {
 	private final AtomicInteger priority;
 	private ThreadExecutor executor;
 	
-	public ThreadPool(@Nonnegative int nThreads, @Nonnull String nameFormat) {
+	public ThreadPool(int nThreads, @NotNull String nameFormat) {
 		this(false, nThreads, nameFormat);
 	}
 	
-	public ThreadPool(boolean priorityScheduling, @Nonnegative int nThreads, @Nonnull String nameFormat) {
+	public ThreadPool(boolean priorityScheduling, int nThreads, @NotNull String nameFormat) {
 		this.running = new ThreadRunningProtector();
 		this.priorityScheduling = priorityScheduling;
 		this.nThreads = nThreads;
@@ -59,7 +58,7 @@ public class ThreadPool {
 		this.priority = new AtomicInteger(Thread.NORM_PRIORITY);
 	}
 	
-	public void setPriority(@Nonnegative int priority) {
+	public void setPriority(int priority) {
 		this.priority.set(priority);
 	}
 	
@@ -76,16 +75,15 @@ public class ThreadPool {
 		executor.stop(interrupt);
 	}
 	
-	public boolean awaitTermination(@Nonnegative long timeout) {
+	public boolean awaitTermination(long timeout) {
 		return running.expectCreated() && executor.awaitTermination(timeout);
 	}
 	
-	@Nonnegative
 	public int getQueuedTasks() {
 		return executor.getQueuedTasks();
 	}
 	
-	public void execute(@Nonnull Runnable runnable) {
+	public void execute(@NotNull Runnable runnable) {
 		if (running.expectRunning()) {
 			if (!priorityScheduling)
 				executor.execute(runnable);
@@ -94,7 +92,7 @@ public class ThreadPool {
 		}
 	}
 	
-	public void execute(@Nonnull PrioritizedRunnable runnable) {
+	public void execute(@NotNull PrioritizedRunnable runnable) {
 		if (running.expectRunning())
 			executor.execute(runnable);
 	}
@@ -114,7 +112,7 @@ public class ThreadPool {
 		private final List<Thread> threads;
 		private final int nThreads;
 		
-		public ThreadExecutor(boolean priorityScheduling, @Nonnegative int nThreads, @Nonnull ThreadFactory threadFactory) {
+		public ThreadExecutor(boolean priorityScheduling, int nThreads, @NotNull ThreadFactory threadFactory) {
 			this.runningThreads = new AtomicInteger(0);
 			if (priorityScheduling)
 				this.tasks = new PriorityBlockingQueue<>();
@@ -145,16 +143,15 @@ public class ThreadPool {
 			}
 		}
 		
-		@Nonnegative
 		public int getQueuedTasks() {
 			return tasks.size();
 		}
 		
-		public void execute(@Nonnull Runnable runnable) {
+		public void execute(@NotNull Runnable runnable) {
 			tasks.offer(runnable);
 		}
 		
-		public boolean awaitTermination(@Nonnegative long time) {
+		public boolean awaitTermination(long time) {
 			try {
 				synchronized (runningThreads) {
 					while (runningThreads.get() > 0 && time > 0) {
@@ -196,7 +193,7 @@ public class ThreadPool {
 		}
 		
 		@Override
-		public int compareTo(@Nonnull PrioritizedRunnable o) {
+		public int compareTo(@NotNull PrioritizedRunnable o) {
 			return 1;
 		}
 		

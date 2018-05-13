@@ -25,8 +25,8 @@ package me.joshlarson.jlcommon.control;
 
 import me.joshlarson.jlcommon.concurrency.Delay;
 import me.joshlarson.jlcommon.log.Log;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
@@ -193,7 +193,7 @@ public abstract class Manager implements ServiceBase {
 	 *
 	 * @return the unmodifiable list of children
 	 */
-	@Nonnull
+	@NotNull
 	public final List<ServiceBase> getChildren() {
 		return Collections.unmodifiableList(children);
 	}

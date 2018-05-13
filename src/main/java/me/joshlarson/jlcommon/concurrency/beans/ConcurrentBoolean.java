@@ -21,34 +21,57 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE   *
  * SOFTWARE.                                                                       *
  ***********************************************************************************/
-package me.joshlarson.jlcommon.log.log_wrapper;
+package me.joshlarson.jlcommon.concurrency.beans;
 
-import me.joshlarson.jlcommon.log.Log;
-import me.joshlarson.jlcommon.log.LogWrapper;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
+import java.util.function.UnaryOperator;
 
-public class StreamLogWrapper implements LogWrapper {
+public class ConcurrentBoolean extends ConcurrentBase<Boolean> {
 	
-	private final BufferedWriter writer;
+	public ConcurrentBoolean() {
+		super(true, false);
+	}
 	
-	public StreamLogWrapper(@NotNull OutputStream os) {
-		writer = new BufferedWriter(new OutputStreamWriter(os, StandardCharsets.UTF_8));
+	public ConcurrentBoolean(@NotNull Boolean value) {
+		super(true, value);
+	}
+	
+	public ConcurrentBoolean(boolean value) {
+		super(true, value);
 	}
 	
 	@Override
-	public void onLog(@NotNull Log.LogLevel level, @NotNull String str) {
-		try {
-			writer.write(str);
-			writer.newLine();
-			writer.flush();
-		} catch (IOException e) {
-			e.printStackTrace();
+	@NotNull
+	public Boolean get() {
+		return super.get();
+	}
+	
+	@Override
+	@NotNull
+	public Boolean set(@NotNull Boolean value) {
+		return super.set(value);
+	}
+	
+	public boolean getValue() {
+		return get();
+	}
+	
+	public boolean setValue(boolean value) {
+		return super.set(value);
+	}
+	
+	public boolean updateAndGet(@NotNull UnaryOperator<Boolean> op) {
+		synchronized (getMutex()) {
+			Boolean newValue = op.apply(internalGet());
+			internalSet(newValue);
+			return newValue;
+		}
+	}
+	
+	public boolean getAndUpdate(@NotNull UnaryOperator<Boolean> op) {
+		synchronized (getMutex()) {
+			return internalSet(op.apply(internalGet()));
 		}
 	}
 	

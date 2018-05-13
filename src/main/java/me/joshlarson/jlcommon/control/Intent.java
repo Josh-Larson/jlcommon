@@ -23,8 +23,9 @@
  ***********************************************************************************/
 package me.joshlarson.jlcommon.control;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -47,7 +48,7 @@ public abstract class Intent implements Comparable<Intent> {
 	/**
 	 * Called when the intent has been completed
 	 */
-	synchronized void markAsComplete(@Nonnull IntentManager intentManager) {
+	synchronized void markAsComplete(@NotNull IntentManager intentManager) {
 		this.complete = true;
 		if (sequential != null)
 			sequential.broadcast(intentManager);
@@ -59,7 +60,7 @@ public abstract class Intent implements Comparable<Intent> {
 		return completedCallback;
 	}
 	
-	public void setCompletedCallback(@Nonnull Consumer<Intent> completedCallback) {
+	public void setCompletedCallback(@NotNull Consumer<Intent> completedCallback) {
 		this.completedCallback = completedCallback;
 	}
 	
@@ -103,7 +104,7 @@ public abstract class Intent implements Comparable<Intent> {
 	 * @param intentManager the intent manager to broadcast this intent on
 	 */
 	@SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
-	public synchronized void broadcastAfterIntent(@Nullable Intent i, @Nonnull IntentManager intentManager) {
+	public synchronized void broadcastAfterIntent(@Nullable Intent i, @NotNull IntentManager intentManager) {
 		if (i == null) {
 			broadcast(intentManager);
 			return;
@@ -134,7 +135,7 @@ public abstract class Intent implements Comparable<Intent> {
 	 * @param intentManager the intent manager to broadcast this intent on
 	 */
 	@SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
-	public synchronized void broadcastWithIntent(@Nullable Intent i, @Nonnull IntentManager intentManager) {
+	public synchronized void broadcastWithIntent(@Nullable Intent i, @NotNull IntentManager intentManager) {
 		if (i == null) {
 			broadcast(intentManager);
 			return;
@@ -161,7 +162,7 @@ public abstract class Intent implements Comparable<Intent> {
 	 *
 	 * @param intentManager the intent manager to broadcast this intent on
 	 */
-	public synchronized void broadcast(@Nonnull IntentManager intentManager) {
+	public synchronized void broadcast(@NotNull IntentManager intentManager) {
 		if (broadcasted)
 			throw new IllegalStateException("Intent has already been broadcasted!");
 		broadcasted = true;
@@ -177,18 +178,18 @@ public abstract class Intent implements Comparable<Intent> {
 	}
 	
 	@Override
-	public int compareTo(@Nonnull Intent i) {
+	public int compareTo(@NotNull Intent i) {
 		return getPriority().comparePriorityTo(i.getPriority());
 	}
 	
-	private synchronized void setAsParallel(@Nonnull Intent i) {
+	private synchronized void setAsParallel(@NotNull Intent i) {
 		if (parallel == null)
 			parallel = i;
 		else
 			parallel.setAsParallel(i);
 	}
 	
-	private synchronized void setAsSequential(@Nonnull Intent i) {
+	private synchronized void setAsSequential(@NotNull Intent i) {
 		if (sequential == null)
 			sequential = i;
 		else
@@ -212,7 +213,7 @@ public abstract class Intent implements Comparable<Intent> {
 			return priority;
 		}
 		
-		public int comparePriorityTo(@Nonnull IntentPriority ip) {
+		public int comparePriorityTo(@NotNull IntentPriority ip) {
 			return Integer.compare(priority, ip.priority);
 		}
 		

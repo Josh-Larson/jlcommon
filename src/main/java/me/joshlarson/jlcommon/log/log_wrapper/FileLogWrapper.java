@@ -23,7 +23,8 @@
  ***********************************************************************************/
 package me.joshlarson.jlcommon.log.log_wrapper;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -31,12 +32,12 @@ import java.io.OutputStream;
 
 public class FileLogWrapper extends StreamLogWrapper {
 	
-	public FileLogWrapper(@Nonnull File file) {
+	public FileLogWrapper(@NotNull File file) {
 		super(safeCreateOutputStream(file));
 	}
 	
-	@Nonnull
-	private static OutputStream safeCreateOutputStream(@Nonnull File file) {
+	@NotNull
+	private static OutputStream safeCreateOutputStream(@NotNull File file) {
 		try {
 			return new FileOutputStream(file);
 		} catch (FileNotFoundException e) {

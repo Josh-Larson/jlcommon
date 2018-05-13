@@ -24,10 +24,9 @@
 package me.joshlarson.jlcommon.concurrency;
 
 import me.joshlarson.jlcommon.utilities.ThreadUtilities;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnegative;
-import javax.annotation.Nonnull;
 import java.util.concurrent.*;
 
 public class ScheduledThreadPool {
@@ -37,11 +36,11 @@ public class ScheduledThreadPool {
 	private final ThreadFactory threadFactory;
 	private ScheduledExecutorService executor;
 	
-	public ScheduledThreadPool(@Nonnegative int nThreads, @Nonnull String nameFormat) {
+	public ScheduledThreadPool(int nThreads, @NotNull String nameFormat) {
 		this(nThreads, Thread.NORM_PRIORITY, nameFormat);
 	}
 	
-	public ScheduledThreadPool(@Nonnegative int nThreads, @Nonnegative int priority, @Nonnull String nameFormat) {
+	public ScheduledThreadPool(int nThreads, int priority, @NotNull String nameFormat) {
 		this.running = new ThreadRunningProtector();
 		this.nThreads = nThreads;
 		this.threadFactory = ThreadUtilities.newThreadFactory(nameFormat, priority);
@@ -64,26 +63,26 @@ public class ScheduledThreadPool {
 		return running.isRunning();
 	}
 	
-	public void executeWithFixedRate(@Nonnegative long initialDelay, @Nonnegative long time, @Nonnull Runnable runnable) {
+	public void executeWithFixedRate(long initialDelay, long time, @NotNull Runnable runnable) {
 		if (!running.expectRunning())
 			return;
 		executor.scheduleAtFixedRate(() -> ThreadUtilities.safeRun(runnable), initialDelay, time, TimeUnit.MILLISECONDS);
 	}
 	
-	public void executeWithFixedDelay(@Nonnegative long initialDelay, @Nonnegative long time, @Nonnull Runnable runnable) {
+	public void executeWithFixedDelay(long initialDelay, long time, @NotNull Runnable runnable) {
 		if (!running.expectRunning())
 			return;
 		executor.scheduleWithFixedDelay(() -> ThreadUtilities.safeRun(runnable), initialDelay, time, TimeUnit.MILLISECONDS);
 	}
 	
-	@CheckForNull
-	public ScheduledFuture<?> execute(@Nonnegative long delay, @Nonnull Runnable runnable) {
+	@Nullable
+	public ScheduledFuture<?> execute(long delay, @NotNull Runnable runnable) {
 		if (!running.expectRunning())
 			return null;
 		return executor.schedule(() -> ThreadUtilities.safeRun(runnable), delay, TimeUnit.MILLISECONDS);
 	}
 	
-	public boolean awaitTermination(@Nonnegative long time) {
+	public boolean awaitTermination(long time) {
 		if (!running.expectCreated())
 			return true;
 		try {

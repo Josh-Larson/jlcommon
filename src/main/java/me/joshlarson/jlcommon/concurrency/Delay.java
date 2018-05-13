@@ -23,8 +23,8 @@
  ***********************************************************************************/
 package me.joshlarson.jlcommon.concurrency;
 
-import javax.annotation.Nonnegative;
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
@@ -36,7 +36,7 @@ public class Delay {
 	 * @param nanos the number of nanoseconds to sleep
 	 * @return FALSE if this thread has been interrupted, TRUE otherwise
 	 */
-	public static boolean sleepNano(@Nonnegative long nanos) {
+	public static boolean sleepNano(long nanos) {
 		LockSupport.parkNanos(nanos);
 		return !isInterrupted();
 	}
@@ -47,7 +47,7 @@ public class Delay {
 	 * @param micro the number of microseconds to sleep
 	 * @return FALSE if this thread has been interrupted, TRUE otherwise
 	 */
-	public static boolean sleepMicro(@Nonnegative long micro) {
+	public static boolean sleepMicro(long micro) {
 		return sleepNano(micro * 1000);
 	}
 	
@@ -57,7 +57,7 @@ public class Delay {
 	 * @param milli the number of milliseconds to sleep
 	 * @return FALSE if this thread has been interrupted, TRUE otherwise
 	 */
-	public static boolean sleepMilli(@Nonnegative long milli) {
+	public static boolean sleepMilli(long milli) {
 		return sleepNano(milli * 1000000);
 	}
 	
@@ -67,7 +67,7 @@ public class Delay {
 	 * @param sec the number of seconds to sleep
 	 * @return FALSE if this thread has been interrupted, TRUE otherwise
 	 */
-	public static boolean sleepSeconds(@Nonnegative long sec) {
+	public static boolean sleepSeconds(long sec) {
 		return sleepNano(sec * 1000000000);
 	}
 	
@@ -78,7 +78,7 @@ public class Delay {
 	 * @param unit the unit of time
 	 * @return FALSE if this thread has been interrupted, TRUE otherwise
 	 */
-	public static boolean sleep(@Nonnegative long time, @Nonnull TimeUnit unit) {
+	public static boolean sleep(long time, @NotNull TimeUnit unit) {
 		return sleepNano(unit.toNanos(time));
 	}
 	

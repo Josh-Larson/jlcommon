@@ -21,34 +21,57 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE   *
  * SOFTWARE.                                                                       *
  ***********************************************************************************/
-package me.joshlarson.jlcommon.log.log_wrapper;
+package me.joshlarson.jlcommon.concurrency.beans;
 
-import me.joshlarson.jlcommon.log.Log;
-import me.joshlarson.jlcommon.log.LogWrapper;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
+import java.util.function.DoubleUnaryOperator;
 
-public class StreamLogWrapper implements LogWrapper {
+public class ConcurrentDouble extends ConcurrentBase<Double> {
 	
-	private final BufferedWriter writer;
+	public ConcurrentDouble() {
+		super(true, 0d);
+	}
 	
-	public StreamLogWrapper(@NotNull OutputStream os) {
-		writer = new BufferedWriter(new OutputStreamWriter(os, StandardCharsets.UTF_8));
+	public ConcurrentDouble(@NotNull Double value) {
+		super(true, value);
+	}
+	
+	public ConcurrentDouble(double value) {
+		super(true, value);
 	}
 	
 	@Override
-	public void onLog(@NotNull Log.LogLevel level, @NotNull String str) {
-		try {
-			writer.write(str);
-			writer.newLine();
-			writer.flush();
-		} catch (IOException e) {
-			e.printStackTrace();
+	@NotNull
+	public Double get() {
+		return super.get();
+	}
+	
+	@Override
+	@NotNull
+	public Double set(@NotNull Double value) {
+		return super.set(value);
+	}
+	
+	public double getValue() {
+		return get();
+	}
+	
+	public double setValue(double value) {
+		return super.set(value);
+	}
+	
+	public double updateAndGet(@NotNull DoubleUnaryOperator op) {
+		synchronized (getMutex()) {
+			double newValue = op.applyAsDouble(internalGet());
+			internalSet(newValue);
+			return newValue;
+		}
+	}
+	
+	public double getAndUpdate(@NotNull DoubleUnaryOperator op) {
+		synchronized (getMutex()) {
+			return internalSet(op.applyAsDouble(internalGet()));
 		}
 	}
 	

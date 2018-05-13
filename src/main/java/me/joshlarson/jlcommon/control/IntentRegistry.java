@@ -23,12 +23,13 @@
  ***********************************************************************************/
 package me.joshlarson.jlcommon.control;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.function.Consumer;
 
 public interface IntentRegistry {
 	
-	<T extends Intent> void registerForIntent(@Nonnull Class<T> c, @Nonnull Consumer<T> r);
-	<T extends Intent> void unregisterForIntent(@Nonnull Class<T> c, @Nonnull Consumer<T> r);
+	<T extends Intent> void registerForIntent(@NotNull Class<T> c, @NotNull Consumer<T> r);
+	<T extends Intent> void unregisterForIntent(@NotNull Class<T> c, @NotNull Consumer<T> r);
 	
 }

@@ -26,10 +26,9 @@ package me.joshlarson.jlcommon.control;
 import me.joshlarson.jlcommon.concurrency.ThreadPool;
 import me.joshlarson.jlcommon.concurrency.ThreadPool.PrioritizedRunnable;
 import me.joshlarson.jlcommon.log.Log;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnegative;
-import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -48,11 +47,11 @@ public class IntentManager implements IntentRegistry {
 	private final IntentSpeedRecorder speedRecorder;
 	private final ThreadPool processThreads;
 	
-	public IntentManager(@Nonnegative int threadCount) {
+	public IntentManager(int threadCount) {
 		this(false, threadCount);
 	}
 	
-	public IntentManager(boolean priorityScheduling, @Nonnegative int threadCount) {
+	public IntentManager(boolean priorityScheduling, int threadCount) {
 		this.intentRegistrations = new ConcurrentHashMap<>();
 		this.speedRecorder = new IntentSpeedRecorder();
 		this.processThreads = new ThreadPool(priorityScheduling, threadCount, "intent-processor-%d");
@@ -73,22 +72,21 @@ public class IntentManager implements IntentRegistry {
 		processThreads.awaitTermination(500);
 	}
 	
-	public void setPriority(@Nonnegative int priority) {
+	public void setPriority(int priority) {
 		processThreads.setPriority(priority);
 	}
 	
-	@Nonnegative
 	public int getIntentCount() {
 		return processThreads.getQueuedTasks();
 	}
 	
-	@Nonnull
+	@NotNull
 	public IntentSpeedRecorder getSpeedRecorder() {
 		return speedRecorder;
 	}
 	
 	@SuppressWarnings("unchecked")
-	public <E extends Intent> void broadcastIntent(@Nonnull E i) {
+	public <E extends Intent> void broadcastIntent(@NotNull E i) {
 		List<Consumer<? extends Intent>> receivers = intentRegistrations.get(i.getClass());
 		if (receivers == null || !processThreads.isRunning() || receivers.isEmpty()) {
 			i.markAsComplete(this);
@@ -100,19 +98,19 @@ public class IntentManager implements IntentRegistry {
 	}
 	
 	@Override
-	public <T extends Intent> void registerForIntent(@Nonnull Class<T> c, @Nonnull Consumer<T> r) {
+	public <T extends Intent> void registerForIntent(@NotNull Class<T> c, @NotNull Consumer<T> r) {
 		intentRegistrations.computeIfAbsent(c, s -> new CopyOnWriteArrayList<>()).add(r);
 	}
 	
 	@Override
-	public <T extends Intent> void unregisterForIntent(@Nonnull Class<T> c, @Nonnull Consumer<T> r) {
+	public <T extends Intent> void unregisterForIntent(@NotNull Class<T> c, @NotNull Consumer<T> r) {
 		List<Consumer<? extends Intent>> intents = intentRegistrations.get(c);
 		if (intents == null)
 			return;
 		intents.remove(r);
 	}
 	
-	@CheckForNull
+	@Nullable
 	public static IntentManager getInstance() {
 		return INSTANCE.get();
 	}
@@ -131,17 +129,17 @@ public class IntentManager implements IntentRegistry {
 			this.times = new ConcurrentHashMap<>();
 		}
 		
-		private <E extends Intent> void addRecord(@Nonnull Class<E> intent, @Nonnull Consumer<E> consumer, @Nonnegative long timeNanos) {
+		private <E extends Intent> void addRecord(@NotNull Class<E> intent, @NotNull Consumer<E> consumer, long timeNanos) {
 			IntentSpeedRecord record = times.computeIfAbsent(consumer, s -> new IntentSpeedRecord(intent, consumer));
 			record.addTime(timeNanos);
 		}
 		
-		@CheckForNull
-		public IntentSpeedRecord getTime(@Nonnull Consumer<? extends Intent> consumer) {
+		@Nullable
+		public IntentSpeedRecord getTime(@NotNull Consumer<? extends Intent> consumer) {
 			return times.get(consumer);
 		}
 		
-		@Nonnull
+		@NotNull
 		public List<IntentSpeedRecord> getAllTimes() {
 			return new ArrayList<>(times.values());
 		}
@@ -155,40 +153,38 @@ public class IntentManager implements IntentRegistry {
 		private final AtomicLong time;
 		private final AtomicLong count;
 		
-		public IntentSpeedRecord(@Nonnull Class<? extends Intent> intent, @Nonnull Consumer<? extends Intent> consumer) {
+		public IntentSpeedRecord(@NotNull Class<? extends Intent> intent, @NotNull Consumer<? extends Intent> consumer) {
 			this.intent = intent;
 			this.consumer = consumer;
 			this.time = new AtomicLong(0);
 			this.count = new AtomicLong(0);
 		}
 		
-		@Nonnull
+		@NotNull
 		public Class<? extends Intent> getIntent() {
 			return intent;
 		}
 		
-		@Nonnull
+		@NotNull
 		public Consumer<? extends Intent> getConsumer() {
 			return consumer;
 		}
 		
-		@Nonnegative
 		public long getTime() {
 			return time.get();
 		}
 		
-		@Nonnegative
 		public long getCount() {
 			return count.get();
 		}
 		
-		public void addTime(@Nonnegative long timeNanos) {
+		public void addTime(long timeNanos) {
 			time.addAndGet(timeNanos);
 			count.incrementAndGet();
 		}
 		
 		@Override
-		public int compareTo(@Nonnull IntentSpeedRecord record) {
+		public int compareTo(@NotNull IntentSpeedRecord record) {
 			return Long.compare(record.getTime(), getTime());
 		}
 		
@@ -200,7 +196,7 @@ public class IntentManager implements IntentRegistry {
 		private final E i;
 		private final AtomicInteger remaining;
 		
-		public IntentRunner(@Nonnull Consumer<E> r, @Nonnull E i, @Nonnull AtomicInteger remaining) {
+		public IntentRunner(@NotNull Consumer<E> r, @NotNull E i, @NotNull AtomicInteger remaining) {
 			this.r = r;
 			this.i = i;
 			this.remaining = remaining;
@@ -229,7 +225,7 @@ public class IntentManager implements IntentRegistry {
 		}
 		
 		@Override
-		public int compareTo(@Nonnull PrioritizedRunnable r) {
+		public int compareTo(@NotNull PrioritizedRunnable r) {
 			if (r instanceof IntentRunner)
 				return i.compareTo(((IntentRunner) r).i);
 			return -1;

@@ -25,9 +25,8 @@ package me.joshlarson.jlcommon.callback;
 
 import me.joshlarson.jlcommon.concurrency.ThreadPool;
 import me.joshlarson.jlcommon.log.Log;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnegative;
-import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
@@ -39,25 +38,25 @@ public class CallbackManager<T> {
 	private final List<T> callbacks;
 	private final AtomicInteger runningTasks;
 	
-	public CallbackManager(@Nonnull String name) {
+	public CallbackManager(@NotNull String name) {
 		this(name, 1);
 	}
 	
-	public CallbackManager(@Nonnull String name, @Nonnegative int threadCount) {
+	public CallbackManager(@NotNull String name, int threadCount) {
 		this.executor = new ThreadPool(threadCount, name);
 		this.callbacks = new CopyOnWriteArrayList<>();
 		this.runningTasks = new AtomicInteger(0);
 	}
 	
-	public void addCallback(@Nonnull T callback) {
+	public void addCallback(@NotNull T callback) {
 		callbacks.add(callback);
 	}
 	
-	public void removeCallback(@Nonnull T callback) {
+	public void removeCallback(@NotNull T callback) {
 		callbacks.remove(callback);
 	}
 	
-	public void setCallback(@Nonnull T callback) {
+	public void setCallback(@NotNull T callback) {
 		callbacks.clear();
 		callbacks.add(callback);
 	}
@@ -74,7 +73,7 @@ public class CallbackManager<T> {
 		executor.stop(false);
 	}
 	
-	public boolean awaitTermination(@Nonnegative long timeout, @Nonnull TimeUnit unit) {
+	public boolean awaitTermination(long timeout, @NotNull TimeUnit unit) {
 		return executor.awaitTermination(unit.toMillis(timeout));
 	}
 	
@@ -86,7 +85,7 @@ public class CallbackManager<T> {
 		return runningTasks.get() == 0;
 	}
 	
-	public void callOnEach(@Nonnull CallCallback<T> call) {
+	public void callOnEach(@NotNull CallCallback<T> call) {
 		runningTasks.incrementAndGet();
 		executor.execute(() -> {
 			for (T callback : callbacks) {
@@ -102,6 +101,6 @@ public class CallbackManager<T> {
 	
 	public interface CallCallback<T> {
 		
-		void run(@Nonnull T callback);
+		void run(@NotNull T callback);
 	}
 }

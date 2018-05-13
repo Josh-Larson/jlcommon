@@ -23,7 +23,8 @@
  ***********************************************************************************/
 package me.joshlarson.jlcommon.log;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -42,7 +43,7 @@ public class Log {
 		this.timeFormat = DateTimeFormatter.ofPattern("dd-MM-yy HH:mm:ss.SSS").withZone(ZoneId.systemDefault());
 	}
 	
-	private void logAddWrapper(@Nonnull LogWrapper wrapper) {
+	private void logAddWrapper(@NotNull LogWrapper wrapper) {
 		wrappers.add(wrapper);
 	}
 	
@@ -50,7 +51,7 @@ public class Log {
 		wrappers.clear();
 	}
 	
-	private void logImplementation(@Nonnull LogLevel level, @Nonnull String str, Object... args) {
+	private void logImplementation(@NotNull LogLevel level, @NotNull String str, Object... args) {
 		String date = timeFormat.format(Instant.now());
 		String logStr;
 		if (args.length == 0)
@@ -62,14 +63,14 @@ public class Log {
 		}
 	}
 	
-	@Nonnull
+	@NotNull
 	private static synchronized Log getInstance() {
 		if (INSTANCE != null)
 			return INSTANCE;
 		return INSTANCE = new Log();
 	}
 	
-	public static void addWrapper(@Nonnull LogWrapper wrapper) {
+	public static void addWrapper(@NotNull LogWrapper wrapper) {
 		getInstance().logAddWrapper(wrapper);
 	}
 	
@@ -84,7 +85,7 @@ public class Log {
 	 * @param str   the format string for the log
 	 * @param args  the string format arguments, if specified
 	 */
-	private static void log(@Nonnull LogLevel level, @Nonnull String str, Object... args) {
+	private static void log(@NotNull LogLevel level, @NotNull String str, Object... args) {
 		synchronized (getInstance()) {
 			getInstance().logImplementation(level, str, args);
 		}
@@ -96,7 +97,7 @@ public class Log {
 	 * @param message the format string for the log
 	 * @param args    the string format arguments, if specified
 	 */
-	public static void t(@Nonnull String message, Object... args) {
+	public static void t(@NotNull String message, Object... args) {
 		log(LogLevel.TRACE, message, args);
 	}
 	
@@ -106,7 +107,7 @@ public class Log {
 	 * @param message the format string for the log
 	 * @param args    the string format arguments, if specified
 	 */
-	public static void d(@Nonnull String message, Object... args) {
+	public static void d(@NotNull String message, Object... args) {
 		log(LogLevel.DATA, message, args);
 	}
 	
@@ -116,7 +117,7 @@ public class Log {
 	 * @param message the format string for the log
 	 * @param args    the string format arguments, if specified
 	 */
-	public static void i(@Nonnull String message, Object... args) {
+	public static void i(@NotNull String message, Object... args) {
 		log(LogLevel.INFO, message, args);
 	}
 	
@@ -126,7 +127,7 @@ public class Log {
 	 * @param message the format string for the log
 	 * @param args    the string format arguments, if specified
 	 */
-	public static void w(@Nonnull String message, Object... args) {
+	public static void w(@NotNull String message, Object... args) {
 		log(LogLevel.WARN, message, args);
 	}
 	
@@ -135,7 +136,7 @@ public class Log {
 	 *
 	 * @param exception the exception to print
 	 */
-	public static void w(@Nonnull Throwable exception) {
+	public static void w(@NotNull Throwable exception) {
 		printException(LogLevel.WARN, exception);
 	}
 	
@@ -145,7 +146,7 @@ public class Log {
 	 * @param message the format string for the log
 	 * @param args    the string format arguments, if specified
 	 */
-	public static void e(@Nonnull String message, Object... args) {
+	public static void e(@NotNull String message, Object... args) {
 		log(LogLevel.ERROR, message, args);
 	}
 	
@@ -154,7 +155,7 @@ public class Log {
 	 *
 	 * @param exception the exception to print
 	 */
-	public static void e(@Nonnull Throwable exception) {
+	public static void e(@NotNull Throwable exception) {
 		printException(LogLevel.ERROR, exception);
 	}
 	
@@ -164,7 +165,7 @@ public class Log {
 	 * @param message the format string for the log
 	 * @param args    the string format arguments, if specified
 	 */
-	public static void a(@Nonnull String message, Object... args) {
+	public static void a(@NotNull String message, Object... args) {
 		log(LogLevel.ASSERT, message, args);
 	}
 	
@@ -173,17 +174,17 @@ public class Log {
 	 *
 	 * @param exception the exception to print
 	 */
-	public static void a(@Nonnull Throwable exception) {
+	public static void a(@NotNull Throwable exception) {
 		printException(LogLevel.ASSERT, exception);
 	}
 	
-	private static void printException(@Nonnull LogLevel level, @Nonnull Throwable exception) {
+	private static void printException(@NotNull LogLevel level, @NotNull Throwable exception) {
 		synchronized (getInstance()) {
 			printException(level, exception, 0);
 		}
 	}
 	
-	private static void printException(@Nonnull LogLevel level, @Nonnull Throwable exception, int depth) {
+	private static void printException(@NotNull LogLevel level, @NotNull Throwable exception, int depth) {
 		Log instance = getInstance();
 		String depthString = createExceptionDepthString(depth);
 		String header1 = String.format("Exception in thread \"%s\" %s: %s", Thread.currentThread().getName(), exception.getClass().getName(), exception.getMessage());

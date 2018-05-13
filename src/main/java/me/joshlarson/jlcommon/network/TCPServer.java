@@ -28,10 +28,9 @@ import me.joshlarson.jlcommon.concurrency.BasicThread;
 import me.joshlarson.jlcommon.concurrency.ThreadPool;
 import me.joshlarson.jlcommon.log.Log;
 import me.joshlarson.jlcommon.network.TCPServer.TCPSession;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnegative;
-import javax.annotation.Nonnull;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -61,11 +60,11 @@ public class TCPServer<T extends TCPSession> {
 	private final ByteArrayOutputStream bufferStream;
 	private final WritableByteChannel byteBufferChannel;
 	
-	public TCPServer(int port, @Nonnegative int bufferSize, @Nonnull Function<SocketChannel, T> sessionCreator) {
+	public TCPServer(int port, int bufferSize, @NotNull Function<SocketChannel, T> sessionCreator) {
 		this(new InetSocketAddress((InetAddress) null, port), bufferSize, sessionCreator);
 	}
 	
-	public TCPServer(@Nonnull InetSocketAddress addr, @Nonnegative int bufferSize, @Nonnull Function<SocketChannel, T> sessionCreator) {
+	public TCPServer(@NotNull InetSocketAddress addr, int bufferSize, @NotNull Function<SocketChannel, T> sessionCreator) {
 		this.callbackThread = new ThreadPool(false, 1, "tcpserver-" + addr.getPort());
 		this.channels = new ConcurrentHashMap<>();
 		this.sessionIdToChannel = new ConcurrentHashMap<>();
@@ -108,11 +107,11 @@ public class TCPServer<T extends TCPSession> {
 		disconnect(session.getChannel());
 	}
 	
-	public void disconnect(@Nonnull T session) {
+	public void disconnect(@NotNull T session) {
 		disconnect(session.getChannel());
 	}
 	
-	public void disconnect(@Nonnull SocketChannel sc) {
+	public void disconnect(@NotNull SocketChannel sc) {
 		T session = channels.remove(sc);
 		if (session == null) {
 			Log.w("TCPServer - unknown channel in disconnect: %d", sc);
@@ -124,13 +123,13 @@ public class TCPServer<T extends TCPSession> {
 		callbackThread.execute(session::onDisconnected);
 	}
 	
-	@CheckForNull
+	@Nullable
 	public T getSession(long sessionId) {
 		return sessionIdToChannel.get(sessionId);
 	}
 	
-	@CheckForNull
-	public T getSession(@Nonnull SocketChannel sc) {
+	@Nullable
+	public T getSession(@NotNull SocketChannel sc) {
 		return channels.get(sc);
 	}
 	
@@ -156,7 +155,7 @@ public class TCPServer<T extends TCPSession> {
 		}
 	}
 	
-	private void accept(@Nonnull Selector selector) {
+	private void accept(@NotNull Selector selector) {
 		try {
 			while (channel.isOpen()) {
 				SocketChannel sc = channel.accept();
@@ -173,7 +172,7 @@ public class TCPServer<T extends TCPSession> {
 		}
 	}
 	
-	private void acceptConnection(@Nonnull SocketChannel sc) {
+	private void acceptConnection(@NotNull SocketChannel sc) {
 		T session = sessionCreator.apply(sc);
 		if (session == null) {
 			Log.w("Session creator for TCPServer-%d created a null session!", addr.getPort());
@@ -190,7 +189,7 @@ public class TCPServer<T extends TCPSession> {
 		callbackThread.execute(session::onConnected);
 	}
 	
-	private void read(@Nonnull SelectionKey key) {
+	private void read(@NotNull SelectionKey key) {
 		SelectableChannel selectableChannel = key.channel();
 		if (selectableChannel == channel)
 			return;
@@ -224,12 +223,12 @@ public class TCPServer<T extends TCPSession> {
 		}
 	}
 	
-	private void invalidate(@Nonnull SocketChannel sc, @Nonnull SelectionKey key) {
+	private void invalidate(@NotNull SocketChannel sc, @NotNull SelectionKey key) {
 		key.cancel();
 		disconnect(sc);
 	}
 	
-	private static void safeClose(@Nonnull Channel c) {
+	private static void safeClose(@NotNull Channel c) {
 		try {
 			c.close();
 		} catch (IOException e) {
@@ -245,7 +244,7 @@ public class TCPServer<T extends TCPSession> {
 		private final SocketAddress addr;
 		private final long sessionId;
 		
-		protected TCPSession(@Nonnull SocketChannel sc) {
+		protected TCPSession(@NotNull SocketChannel sc) {
 			this.sc = sc;
 			this.sessionId = GLOBAL_SESSION_ID.incrementAndGet();
 			
@@ -267,7 +266,6 @@ public class TCPServer<T extends TCPSession> {
 		 *
 		 * @return the unique session id
 		 */
-		@Nonnegative
 		protected final long getSessionId() {
 			return sessionId;
 		}
@@ -277,7 +275,7 @@ public class TCPServer<T extends TCPSession> {
 		 *
 		 * @return the socket channel
 		 */
-		@Nonnull
+		@NotNull
 		protected final SocketChannel getChannel() {
 			return sc;
 		}
@@ -288,18 +286,18 @@ public class TCPServer<T extends TCPSession> {
 		 * @return the remote socket address
 		 */
 		@Unused(reason = "API")
-		@Nonnull
+		@NotNull
 		protected final SocketAddress getRemoteAddress() {
 			return addr;
 		}
 		
 		@Unused(reason = "API")
-		protected void writeToChannel(@Nonnull ByteBuffer data) throws IOException {
+		protected void writeToChannel(@NotNull ByteBuffer data) throws IOException {
 			sc.write(data);
 		}
 		
 		@Unused(reason = "API")
-		protected void writeToChannel(@Nonnull byte[] data) throws IOException {
+		protected void writeToChannel(@NotNull byte[] data) throws IOException {
 			sc.write(ByteBuffer.wrap(data));
 		}
 		
@@ -307,7 +305,7 @@ public class TCPServer<T extends TCPSession> {
 			safeClose(sc);
 		}
 		
-		protected abstract void onIncomingData(@Nonnull byte[] data);
+		protected abstract void onIncomingData(@NotNull byte[] data);
 	}
 	
 }

@@ -23,7 +23,8 @@
  ***********************************************************************************/
 package me.joshlarson.jlcommon.utilities;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import java.nio.ByteBuffer;
 
 public class ByteUtilities {
@@ -31,8 +32,8 @@ public class ByteUtilities {
 	private static final ByteBuffer buffer = ByteBuffer.allocate(Long.SIZE);
 	private static final char[] HEX = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 	
-	@Nonnull
-	public static String getHexString(@Nonnull byte[] bytes) {
+	@NotNull
+	public static String getHexString(@NotNull byte[] bytes) {
 		char[] data = new char[bytes.length * 2 + (bytes.length > 0 ? bytes.length - 1 : 0)];
 		byte b;
 		int ind;
@@ -47,8 +48,8 @@ public class ByteUtilities {
 		return new String(data);
 	}
 	
-	@Nonnull
-	public static byte[] getHexStringArray(@Nonnull String string) {
+	@NotNull
+	public static byte[] getHexStringArray(@NotNull String string) {
 		int len = string.length();
 		if (len % 2 != 0)
 			return new byte[0];
@@ -59,7 +60,7 @@ public class ByteUtilities {
 		return data;
 	}
 	
-	@Nonnull
+	@NotNull
 	public static byte[] longToBytes(long l) {
 		byte[] b = new byte[Long.SIZE];
 		synchronized (buffer) {
@@ -69,11 +70,11 @@ public class ByteUtilities {
 		return b;
 	}
 	
-	public static long bytesToLong(@Nonnull byte[] a) {
+	public static long bytesToLong(@NotNull byte[] a) {
 		return bytesToLong(a, 0);
 	}
 	
-	public static long bytesToLong(@Nonnull byte[] a, int offset) {
+	public static long bytesToLong(@NotNull byte[] a, int offset) {
 		synchronized (buffer) {
 			for (int i = 0; i < Long.SIZE; i++) {
 				if (i < a.length)
@@ -85,10 +86,10 @@ public class ByteUtilities {
 		}
 	}
 	
-	@Nonnull
-	public static String nextString(@Nonnull ByteBuffer data) {
+	@NotNull
+	public static String nextString(@NotNull ByteBuffer data) {
 		byte[] bData = data.array();
-		StringBuilder str = new StringBuilder("");
+		StringBuilder str = new StringBuilder();
 		for (int i = data.position(); i < bData.length && bData[i] >= ' ' && bData[i] <= '~'; i++)
 			str.append((char) data.get());
 		return str.toString();

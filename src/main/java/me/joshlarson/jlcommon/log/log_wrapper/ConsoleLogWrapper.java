@@ -26,8 +26,7 @@ package me.joshlarson.jlcommon.log.log_wrapper;
 import me.joshlarson.jlcommon.log.Log;
 import me.joshlarson.jlcommon.log.Log.LogLevel;
 import me.joshlarson.jlcommon.log.LogWrapper;
-
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 public class ConsoleLogWrapper implements LogWrapper {
 	
@@ -45,12 +44,12 @@ public class ConsoleLogWrapper implements LogWrapper {
 	 *
 	 * @param level the minimum LogLevel to print
 	 */
-	public ConsoleLogWrapper(@Nonnull Log.LogLevel level) {
+	public ConsoleLogWrapper(@NotNull Log.LogLevel level) {
 		this.level = level;
 	}
 	
 	@Override
-	public void onLog(@Nonnull Log.LogLevel level, @Nonnull String str) {
+	public void onLog(@NotNull Log.LogLevel level, @NotNull String str) {
 		if (this.level.compareTo(level) > 0)
 			return;
 		if (level.compareTo(Log.LogLevel.WARN) >= 0)

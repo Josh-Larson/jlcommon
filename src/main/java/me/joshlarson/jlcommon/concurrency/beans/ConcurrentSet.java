@@ -21,35 +21,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE   *
  * SOFTWARE.                                                                       *
  ***********************************************************************************/
-package me.joshlarson.jlcommon.log.log_wrapper;
+package me.joshlarson.jlcommon.concurrency.beans;
 
-import me.joshlarson.jlcommon.log.Log;
-import me.joshlarson.jlcommon.log.LogWrapper;
-import org.jetbrains.annotations.NotNull;
+import java.util.HashSet;
+import java.util.Set;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
-
-public class StreamLogWrapper implements LogWrapper {
+public class ConcurrentSet<T> extends ConcurrentCollection<Set<T>, T> implements Set<T> {
 	
-	private final BufferedWriter writer;
-	
-	public StreamLogWrapper(@NotNull OutputStream os) {
-		writer = new BufferedWriter(new OutputStreamWriter(os, StandardCharsets.UTF_8));
+	public ConcurrentSet() {
+		super(new HashSet<>());
 	}
 	
-	@Override
-	public void onLog(@NotNull Log.LogLevel level, @NotNull String str) {
-		try {
-			writer.write(str);
-			writer.newLine();
-			writer.flush();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+	public ConcurrentSet(Set<T> value) {
+		super(value);
 	}
 	
 }

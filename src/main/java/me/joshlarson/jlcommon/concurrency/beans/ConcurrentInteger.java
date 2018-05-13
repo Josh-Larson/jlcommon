@@ -21,34 +21,101 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE   *
  * SOFTWARE.                                                                       *
  ***********************************************************************************/
-package me.joshlarson.jlcommon.log.log_wrapper;
+package me.joshlarson.jlcommon.concurrency.beans;
 
-import me.joshlarson.jlcommon.log.Log;
-import me.joshlarson.jlcommon.log.LogWrapper;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
+import java.util.function.IntUnaryOperator;
 
-public class StreamLogWrapper implements LogWrapper {
+public class ConcurrentInteger extends ConcurrentBase<Integer> {
 	
-	private final BufferedWriter writer;
+	public ConcurrentInteger() {
+		super(true, 0);
+	}
 	
-	public StreamLogWrapper(@NotNull OutputStream os) {
-		writer = new BufferedWriter(new OutputStreamWriter(os, StandardCharsets.UTF_8));
+	public ConcurrentInteger(@NotNull Integer value) {
+		super(true, value);
+	}
+	
+	public ConcurrentInteger(int value) {
+		super(true, value);
 	}
 	
 	@Override
-	public void onLog(@NotNull Log.LogLevel level, @NotNull String str) {
-		try {
-			writer.write(str);
-			writer.newLine();
-			writer.flush();
-		} catch (IOException e) {
-			e.printStackTrace();
+	@NotNull
+	public Integer get() {
+		return super.get();
+	}
+	
+	@Override
+	@NotNull
+	public Integer set(@NotNull Integer value) {
+		return super.set(value);
+	}
+	
+	public int getValue() {
+		return get();
+	}
+	
+	public int setValue(int value) {
+		return set(value);
+	}
+	
+	public int incrementAndGet() {
+		return addAndGet(1);
+	}
+	
+	public int decrementAndGet() {
+		return addAndGet(-1);
+	}
+	
+	public int updateAndGet(@NotNull IntUnaryOperator op) {
+		synchronized (getMutex()) {
+			int newValue = op.applyAsInt(internalGet());
+			internalSet(newValue);
+			return newValue;
+		}
+	}
+	
+	public boolean compareAndSet(int expected, int newValue) {
+		synchronized (getMutex()) {
+			if (internalGet() != expected)
+				return false;
+			int prev = internalSet(newValue);
+			assert prev == expected : "Concurrent modification";
+			return true;
+		}
+	}
+	
+	public int getAndIncrement() {
+		synchronized (getMutex()) {
+			return internalSet(internalGet() + 1);
+		}
+	}
+	
+	public int getAndDecrement() {
+		synchronized (getMutex()) {
+			return internalSet(internalGet() - 1);
+		}
+	}
+	
+	public int getAndUpdate(@NotNull IntUnaryOperator op) {
+		synchronized (getMutex()) {
+			return internalSet(op.applyAsInt(internalGet()));
+		}
+	}
+	
+	public int addAndGet(int delta) {
+		synchronized (getMutex()) {
+			int newValue = internalGet() + delta;
+			internalSet(newValue);
+			return newValue;
+		}
+	}
+	
+	public int getAndAdd(int delta) {
+		synchronized (getMutex()) {
+			return internalSet(internalGet() + delta);
 		}
 	}
 	

@@ -21,34 +21,101 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE   *
  * SOFTWARE.                                                                       *
  ***********************************************************************************/
-package me.joshlarson.jlcommon.log.log_wrapper;
+package me.joshlarson.jlcommon.concurrency.beans;
 
-import me.joshlarson.jlcommon.log.Log;
-import me.joshlarson.jlcommon.log.LogWrapper;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
+import java.util.function.LongUnaryOperator;
 
-public class StreamLogWrapper implements LogWrapper {
+public class ConcurrentLong extends ConcurrentBase<Long> {
 	
-	private final BufferedWriter writer;
+	public ConcurrentLong() {
+		super(true, 0L);
+	}
 	
-	public StreamLogWrapper(@NotNull OutputStream os) {
-		writer = new BufferedWriter(new OutputStreamWriter(os, StandardCharsets.UTF_8));
+	public ConcurrentLong(@NotNull Long value) {
+		super(true, value);
+	}
+	
+	public ConcurrentLong(long value) {
+		super(true, value);
 	}
 	
 	@Override
-	public void onLog(@NotNull Log.LogLevel level, @NotNull String str) {
-		try {
-			writer.write(str);
-			writer.newLine();
-			writer.flush();
-		} catch (IOException e) {
-			e.printStackTrace();
+	@NotNull
+	public Long get() {
+		return super.get();
+	}
+	
+	@Override
+	@NotNull
+	public Long set(@NotNull Long value) {
+		return super.set(value);
+	}
+	
+	public long getValue() {
+		return get();
+	}
+	
+	public long setValue(long value) {
+		return set(value);
+	}
+	
+	public long incrementAndGet() {
+		return addAndGet(1);
+	}
+	
+	public long decrementAndGet() {
+		return addAndGet(-1);
+	}
+	
+	public long updateAndGet(@NotNull LongUnaryOperator op) {
+		synchronized (getMutex()) {
+			long newValue = op.applyAsLong(internalGet());
+			internalSet(newValue);
+			return newValue;
+		}
+	}
+	
+	public boolean compareAndSet(long expected, long newValue) {
+		synchronized (getMutex()) {
+			if (internalGet() != expected)
+				return false;
+			long prev = internalSet(newValue);
+			assert prev == expected : "Concurrent modification";
+		}
+		return true;
+	}
+	
+	public long getAndIncrement() {
+		synchronized (getMutex()) {
+			return internalSet(internalGet() + 1);
+		}
+	}
+	
+	public long getAndDecrement() {
+		synchronized (getMutex()) {
+			return internalSet(internalGet() - 1);
+		}
+	}
+	
+	public long getAndUpdate(@NotNull LongUnaryOperator op) {
+		synchronized (getMutex()) {
+			return internalSet(op.applyAsLong(internalGet()));
+		}
+	}
+	
+	public long addAndGet(long delta) {
+		synchronized (getMutex()) {
+			long newValue = internalGet() + delta;
+			internalSet(newValue);
+			return newValue;
+		}
+	}
+	
+	public long getAndAdd(long delta) {
+		synchronized (getMutex()) {
+			return internalSet(internalGet() + delta);
 		}
 	}
 	

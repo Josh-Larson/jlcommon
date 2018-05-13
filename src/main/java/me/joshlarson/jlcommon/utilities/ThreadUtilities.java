@@ -24,9 +24,8 @@
 package me.joshlarson.jlcommon.utilities;
 
 import me.joshlarson.jlcommon.log.Log;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnegative;
-import javax.annotation.Nonnull;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,15 +34,15 @@ import java.util.stream.Collectors;
 
 public class ThreadUtilities {
 	
-	public static ThreadFactory newThreadFactory(@Nonnull String pattern) {
+	public static ThreadFactory newThreadFactory(@NotNull String pattern) {
 		return new CustomThreadFactory(pattern, Thread.NORM_PRIORITY);
 	}
 	
-	public static ThreadFactory newThreadFactory(@Nonnull String pattern, @Nonnegative int priority) {
+	public static ThreadFactory newThreadFactory(@NotNull String pattern, int priority) {
 		return new CustomThreadFactory(pattern, priority);
 	}
 	
-	public static void safeRun(@Nonnull Runnable runnable) {
+	public static void safeRun(@NotNull Runnable runnable) {
 		try {
 			runnable.run();
 		} catch (Throwable t) {
@@ -81,15 +80,15 @@ public class ThreadUtilities {
 		private final int priority;
 		private int counter;
 		
-		public CustomThreadFactory(@Nonnull String pattern, @Nonnegative int priority) {
+		public CustomThreadFactory(@NotNull String pattern, int priority) {
 			this.pattern = pattern;
 			this.priority = priority;
 			this.counter = 0;
 		}
 		
 		@Override
-		@Nonnull
-		public Thread newThread(@Nonnull Runnable r) {
+		@NotNull
+		public Thread newThread(@NotNull Runnable r) {
 			String name;
 			if (pattern.contains("%d"))
 				name = String.format(pattern, counter++);

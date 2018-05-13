@@ -23,10 +23,10 @@
  ***********************************************************************************/
 package me.joshlarson.jlcommon.log;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 public interface LogWrapper {
 	
-	void onLog(@Nonnull Log.LogLevel level, @Nonnull String str);
+	void onLog(@NotNull Log.LogLevel level, @NotNull String str);
 	
 }

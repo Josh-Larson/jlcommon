@@ -24,8 +24,8 @@
 package me.joshlarson.jlcommon.control;
 
 import me.joshlarson.jlcommon.log.Log;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.reflect.InvocationTargetException;
@@ -40,7 +40,7 @@ public class IntentMultiplexer {
 	private final Service service;
 	private final int expectedArgs;
 	
-	public IntentMultiplexer(@Nonnull Service service, Class<?>... parameters) {
+	public IntentMultiplexer(@NotNull Service service, Class<?>... parameters) {
 		this.methods = new HashMap<>();
 		this.service = service;
 		this.expectedArgs = parameters.length;

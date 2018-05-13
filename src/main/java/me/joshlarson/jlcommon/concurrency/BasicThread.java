@@ -23,7 +23,8 @@
  ***********************************************************************************/
 package me.joshlarson.jlcommon.concurrency;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class BasicThread {
@@ -32,7 +33,7 @@ public class BasicThread {
 	private final AtomicBoolean executing;
 	private final Runnable runnable;
 	
-	public BasicThread(@Nonnull String name, @Nonnull Runnable runnable) {
+	public BasicThread(@NotNull String name, @NotNull Runnable runnable) {
 		this.threadPool = new ThreadPool(1, name);
 		this.executing = new AtomicBoolean(false);
 		this.runnable = runnable;

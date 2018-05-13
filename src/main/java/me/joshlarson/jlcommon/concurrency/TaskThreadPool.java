@@ -23,8 +23,8 @@
  ***********************************************************************************/
 package me.joshlarson.jlcommon.concurrency;
 
-import javax.annotation.Nonnegative;
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.ArrayDeque;
 import java.util.Queue;
 
@@ -33,7 +33,7 @@ public class TaskThreadPool<T> extends ThreadPool {
 	private final Queue<T> tasks;
 	private final Runnable runner;
 	
-	public TaskThreadPool(@Nonnegative int nThreads, @Nonnull String namePattern, @Nonnull TaskExecutor<T> executor) {
+	public TaskThreadPool(int nThreads, @NotNull String namePattern, @NotNull TaskExecutor<T> executor) {
 		super(nThreads, namePattern);
 		this.tasks = new ArrayDeque<>();
 		this.runner = () -> {
@@ -47,25 +47,24 @@ public class TaskThreadPool<T> extends ThreadPool {
 	}
 	
 	@Override
-	public void execute(@Nonnull Runnable runnable) {
+	public void execute(@NotNull Runnable runnable) {
 		throw new UnsupportedOperationException("Runnable are posted automatically by addTask!");
 	}
 	
-	public void addTask(@Nonnull T t) {
+	public void addTask(@NotNull T t) {
 		synchronized (tasks) {
 			tasks.add(t);
 		}
 		super.execute(runner);
 	}
 	
-	@Nonnegative
 	public int getTaskCount() {
 		return tasks.size();
 	}
 	
 	public interface TaskExecutor<T> {
 		
-		void run(@Nonnull T t);
+		void run(@NotNull T t);
 	}
 	
 }

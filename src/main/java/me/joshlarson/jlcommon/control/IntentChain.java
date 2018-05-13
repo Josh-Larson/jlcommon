@@ -23,8 +23,9 @@
  ***********************************************************************************/
 package me.joshlarson.jlcommon.control;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -54,11 +55,11 @@ public class IntentChain {
 		intent.set(null);
 	}
 	
-	public void broadcastAfter(IntentManager intentManager, @Nonnull Intent i) {
+	public void broadcastAfter(IntentManager intentManager, @NotNull Intent i) {
 		i.broadcastAfterIntent(intent.getAndSet(i), intentManager);
 	}
 	
-	public void broadcastAfter(@Nonnull Intent i) {
+	public void broadcastAfter(@NotNull Intent i) {
 		Objects.requireNonNull(intentManager, "IntentManager is null");
 		i.broadcastAfterIntent(intent.getAndSet(i), intentManager);
 	}

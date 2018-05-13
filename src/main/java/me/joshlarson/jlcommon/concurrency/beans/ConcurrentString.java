@@ -21,34 +21,65 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE   *
  * SOFTWARE.                                                                       *
  ***********************************************************************************/
-package me.joshlarson.jlcommon.log.log_wrapper;
+package me.joshlarson.jlcommon.concurrency.beans;
 
-import me.joshlarson.jlcommon.log.Log;
-import me.joshlarson.jlcommon.log.LogWrapper;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
+import java.util.function.UnaryOperator;
+import java.util.stream.IntStream;
 
-public class StreamLogWrapper implements LogWrapper {
+public class ConcurrentString extends ConcurrentBase<String> implements CharSequence {
 	
-	private final BufferedWriter writer;
+	public ConcurrentString() {
+		super();
+	}
 	
-	public StreamLogWrapper(@NotNull OutputStream os) {
-		writer = new BufferedWriter(new OutputStreamWriter(os, StandardCharsets.UTF_8));
+	public ConcurrentString(String value) {
+		super(value);
 	}
 	
 	@Override
-	public void onLog(@NotNull Log.LogLevel level, @NotNull String str) {
-		try {
-			writer.write(str);
-			writer.newLine();
-			writer.flush();
-		} catch (IOException e) {
-			e.printStackTrace();
+	public int length() {
+		return internalGet().length();
+	}
+	
+	@Override
+	public char charAt(int index) {
+		return internalGet().charAt(index);
+	}
+	
+	@Override
+	public CharSequence subSequence(int start, int end) {
+		return internalGet().subSequence(start, end);
+	}
+	
+	@Override
+	public IntStream chars() {
+		return internalGet().chars();
+	}
+	
+	@Override
+	public IntStream codePoints() {
+		return internalGet().codePoints();
+	}
+	
+	@Override
+	@NotNull
+	public String toString() {
+		return internalGet();
+	}
+	
+	public String updateAndGet(@NotNull UnaryOperator<String> op) {
+		synchronized (getMutex()) {
+			String newValue = op.apply(internalGet());
+			internalSet(newValue);
+			return newValue;
+		}
+	}
+	
+	public String getAndUpdate(@NotNull UnaryOperator<String> op) {
+		synchronized (getMutex()) {
+			return internalSet(op.apply(internalGet()));
 		}
 	}
 	

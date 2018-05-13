@@ -23,8 +23,8 @@
  ***********************************************************************************/
 package me.joshlarson.jlcommon.concurrency;
 
-import javax.annotation.Nonnegative;
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -53,7 +53,7 @@ public class SmartLock {
 		return lock.tryLock();
 	}
 	
-	public boolean tryLock(@Nonnegative long time, @Nonnull TimeUnit unit) throws InterruptedException {
+	public boolean tryLock(long time, @NotNull TimeUnit unit) throws InterruptedException {
 		return lock.tryLock(time, unit);
 	}
 	
@@ -79,7 +79,7 @@ public class SmartLock {
 		}
 	}
 	
-	public long awaitNanos(@Nonnegative long nanosTimeout) throws InterruptedException {
+	public long awaitNanos(long nanosTimeout) throws InterruptedException {
 		lock();
 		try {
 			return condition.awaitNanos(nanosTimeout);
@@ -88,7 +88,7 @@ public class SmartLock {
 		}
 	}
 	
-	public boolean await(@Nonnegative long time, @Nonnull TimeUnit unit) throws InterruptedException {
+	public boolean await(long time, @NotNull TimeUnit unit) throws InterruptedException {
 		lock();
 		try {
 			return condition.await(time, unit);
@@ -97,7 +97,7 @@ public class SmartLock {
 		}
 	}
 	
-	public boolean awaitUntil(@Nonnull Date deadline) throws InterruptedException {
+	public boolean awaitUntil(@NotNull Date deadline) throws InterruptedException {
 		lock();
 		try {
 			return condition.awaitUntil(deadline);

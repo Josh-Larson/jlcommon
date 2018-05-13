@@ -23,7 +23,8 @@
  ***********************************************************************************/
 package me.joshlarson.jlcommon.info;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import java.io.File;
 
 /**
@@ -38,7 +39,7 @@ public class Config {
 	 *
 	 * @param filename the file to load
 	 */
-	public Config(@Nonnull String filename) {
+	public Config(@NotNull String filename) {
 		this(new File(filename));
 	}
 	
@@ -47,7 +48,7 @@ public class Config {
 	 *
 	 * @param file the file to load
 	 */
-	public Config(@Nonnull File file) {
+	public Config(@NotNull File file) {
 		if (!file.exists() || !file.isFile())
 			throw new IllegalArgumentException("Filepath does not point to a valid file!");
 		configData = new ConfigData(file);
@@ -61,7 +62,7 @@ public class Config {
 	 * @param key the key to check
 	 * @return TRUE if the key-value pair exists, FALSE otherwise
 	 */
-	public boolean containsKey(@Nonnull String key) {
+	public boolean containsKey(@NotNull String key) {
 		return configData.containsKey(key);
 	}
 	
@@ -72,7 +73,7 @@ public class Config {
 	 * @param def the default value
 	 * @return the value represented by the key, or the default value
 	 */
-	public String getString(@Nonnull String key, String def) {
+	public String getString(@NotNull String key, String def) {
 		if (!containsKey(key)) {
 			setProperty(key, def);
 			return def;
@@ -87,7 +88,7 @@ public class Config {
 	 * @param def the default value
 	 * @return the value represented by the key, or the default value
 	 */
-	public int getInt(@Nonnull String key, int def) {
+	public int getInt(@NotNull String key, int def) {
 		try {
 			return Integer.parseInt(getString(key, Integer.toString(def)));
 		} catch (NumberFormatException e) {
@@ -102,7 +103,7 @@ public class Config {
 	 * @param def the default value
 	 * @return the value represented by the key, or the default value
 	 */
-	public double getDouble(@Nonnull String key, double def) {
+	public double getDouble(@NotNull String key, double def) {
 		try {
 			return Double.parseDouble(getString(key, Double.toString(def)));
 		} catch (NumberFormatException e) {
@@ -117,7 +118,7 @@ public class Config {
 	 * @param def the default value
 	 * @return the value represented by the key, or the default value
 	 */
-	public boolean getBoolean(@Nonnull String key, boolean def) {
+	public boolean getBoolean(@NotNull String key, boolean def) {
 		String val = getString(key, def ? "true" : "false");
 		return (val.equalsIgnoreCase("true") || val.equals("1")) || !val.equalsIgnoreCase("false") && !val.equals("0") && def;
 	}
@@ -128,7 +129,7 @@ public class Config {
 	 * @param key   the key of the value to set
 	 * @param value the value to set
 	 */
-	public void setProperty(@Nonnull String key, @Nonnull String value) {
+	public void setProperty(@NotNull String key, @NotNull String value) {
 		configData.put(key, value);
 		save();
 	}
@@ -139,7 +140,7 @@ public class Config {
 	 * @param key   the key of the value to set
 	 * @param value the value to set
 	 */
-	public void setProperty(@Nonnull String key, int value) {
+	public void setProperty(@NotNull String key, int value) {
 		setProperty(key, Integer.toString(value));
 	}
 	
@@ -149,7 +150,7 @@ public class Config {
 	 * @param key   the key of the value to set
 	 * @param value the value to set
 	 */
-	public void setProperty(@Nonnull String key, boolean value) {
+	public void setProperty(@NotNull String key, boolean value) {
 		setProperty(key, value ? "true" : "false");
 	}
 	
@@ -159,7 +160,7 @@ public class Config {
 	 * @param key   the key of the value to set
 	 * @param value the value to set
 	 */
-	public void setProperty(@Nonnull String key, double value) {
+	public void setProperty(@NotNull String key, double value) {
 		setProperty(key, Double.toString(value));
 	}
 	
@@ -168,7 +169,7 @@ public class Config {
 	 *
 	 * @param key the key to remove
 	 */
-	public void removeProperty(@Nonnull String key) {
+	public void removeProperty(@NotNull String key) {
 		configData.put(key, null);
 	}
 	

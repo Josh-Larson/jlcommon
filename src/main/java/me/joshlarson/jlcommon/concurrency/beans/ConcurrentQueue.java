@@ -21,35 +21,63 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE   *
  * SOFTWARE.                                                                       *
  ***********************************************************************************/
-package me.joshlarson.jlcommon.log.log_wrapper;
+package me.joshlarson.jlcommon.concurrency.beans;
 
-import me.joshlarson.jlcommon.log.Log;
-import me.joshlarson.jlcommon.log.LogWrapper;
-import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
+import java.util.Queue;
 
-public class StreamLogWrapper implements LogWrapper {
+public class ConcurrentQueue<T> extends ConcurrentCollection<Queue<T>, T> implements Queue<T> {
 	
-	private final BufferedWriter writer;
+	public ConcurrentQueue() {
+		super(new ArrayDeque<>());
+	}
 	
-	public StreamLogWrapper(@NotNull OutputStream os) {
-		writer = new BufferedWriter(new OutputStreamWriter(os, StandardCharsets.UTF_8));
+	public ConcurrentQueue(Queue<T> value) {
+		super(value);
 	}
 	
 	@Override
-	public void onLog(@NotNull Log.LogLevel level, @NotNull String str) {
-		try {
-			writer.write(str);
-			writer.newLine();
-			writer.flush();
-		} catch (IOException e) {
-			e.printStackTrace();
+	public boolean offer(T t) {
+		synchronized (getMutex()) {
+			boolean ret = internalGet().offer(t);
+			callCollectionChangedListeners();
+			return ret;
 		}
 	}
 	
+	@Override
+	public T remove() {
+		synchronized (getMutex()) {
+			T ret = internalGet().remove();
+			callCollectionChangedListeners();
+			return ret;
+		}
+	}
+	
+	@Nullable
+	@Override
+	public T poll() {
+		synchronized (getMutex()) {
+			T ret = internalGet().poll();
+			callCollectionChangedListeners();
+			return ret;
+		}
+	}
+	
+	@Override
+	public T element() {
+		synchronized (getMutex()) {
+			return internalGet().element();
+		}
+	}
+	
+	@Nullable
+	@Override
+	public T peek() {
+		synchronized (getMutex()) {
+			return internalGet().peek();
+		}
+	}
 }

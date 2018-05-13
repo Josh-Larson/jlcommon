@@ -24,8 +24,8 @@
 package me.joshlarson.jlcommon.control;
 
 import me.joshlarson.jlcommon.log.Log;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -92,7 +92,7 @@ public abstract class Service implements ServiceBase {
 	}
 	
 	@SuppressWarnings("unchecked")
-	private void unregisterIntentHandlers(@Nonnull IntentRegistry registry) {
+	private void unregisterIntentHandlers(@NotNull IntentRegistry registry) {
 		for (Entry<Class<? extends Intent>, List<Consumer<? extends Intent>>> e : registration.entrySet()) {
 			e.getValue().forEach(c -> registry.unregisterForIntent((Class<Intent>)e.getKey(), (Consumer<Intent>)c));
 		}
@@ -100,12 +100,12 @@ public abstract class Service implements ServiceBase {
 	}
 	
 	@SuppressWarnings("unchecked")
-	private void registerIntentHandlers(@Nonnull IntentRegistry registry) {
+	private void registerIntentHandlers(@NotNull IntentRegistry registry) {
 		registerIntentHandlers(getClass(), registry);
 	}
 	
 	@SuppressWarnings("unchecked")
-	private void registerIntentHandlers(@Nonnull Class<? extends Service> klass, @Nonnull IntentRegistry registry) {
+	private void registerIntentHandlers(@NotNull Class<? extends Service> klass, @NotNull IntentRegistry registry) {
 		for (Method m : klass.getDeclaredMethods()) {
 			if (m.isAnnotationPresent(IntentHandler.class)) {
 				if (m.getParameterCount() == 1) {

@@ -23,25 +23,24 @@
  ***********************************************************************************/
 package me.joshlarson.jlcommon.concurrency;
 
-import javax.annotation.Nonnegative;
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 public class BasicScheduledThread {
 	
 	private final ScheduledThreadPool threadPool;
 	private final Runnable runnable;
 	
-	public BasicScheduledThread(@Nonnull String name, @Nonnull Runnable runnable) {
+	public BasicScheduledThread(@NotNull String name, @NotNull Runnable runnable) {
 		this.threadPool = new ScheduledThreadPool(1, name);
 		this.runnable = runnable;
 	}
 	
-	public void startWithFixedRate(@Nonnegative long initialDelay, @Nonnegative long periodicDelay) {
+	public void startWithFixedRate(long initialDelay, long periodicDelay) {
 		threadPool.start();
 		threadPool.executeWithFixedRate(initialDelay, periodicDelay, runnable);
 	}
 	
-	public void startWithFixedDelay(@Nonnegative long initialDelay, @Nonnegative long periodicDelay) {
+	public void startWithFixedDelay(long initialDelay, long periodicDelay) {
 		threadPool.start();
 		threadPool.executeWithFixedDelay(initialDelay, periodicDelay, runnable);
 	}

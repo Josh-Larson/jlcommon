@@ -24,12 +24,12 @@
 package me.joshlarson.jlcommon.concurrency;
 
 import me.joshlarson.jlcommon.concurrency.ThreadPool.PrioritizedRunnable;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import javax.annotation.Nonnull;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @RunWith(JUnit4.class)
@@ -95,7 +95,7 @@ public class TestThreadPool {
 	private static class TestRunnable implements PrioritizedRunnable {
 		
 		@Override
-		public int compareTo(@Nonnull PrioritizedRunnable o) {
+		public int compareTo(@NotNull PrioritizedRunnable o) {
 			return 0;
 		}
 		

@@ -21,35 +21,89 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE   *
  * SOFTWARE.                                                                       *
  ***********************************************************************************/
-package me.joshlarson.jlcommon.log.log_wrapper;
+package me.joshlarson.jlcommon.concurrency.beans;
 
-import me.joshlarson.jlcommon.log.Log;
-import me.joshlarson.jlcommon.log.LogWrapper;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.ListIterator;
 
-public class StreamLogWrapper implements LogWrapper {
+public class ConcurrentList<T> extends ConcurrentCollection<List<T>, T> implements List<T> {
 	
-	private final BufferedWriter writer;
+	public ConcurrentList() {
+		super(new ArrayList<>());
+	}
 	
-	public StreamLogWrapper(@NotNull OutputStream os) {
-		writer = new BufferedWriter(new OutputStreamWriter(os, StandardCharsets.UTF_8));
+	public ConcurrentList(List<T> value) {
+		super(value);
 	}
 	
 	@Override
-	public void onLog(@NotNull Log.LogLevel level, @NotNull String str) {
-		try {
-			writer.write(str);
-			writer.newLine();
-			writer.flush();
-		} catch (IOException e) {
-			e.printStackTrace();
+	public boolean addAll(int index, @NotNull Collection<? extends T> c) {
+		boolean ret = internalGet().addAll(index, c);
+		callCollectionChangedListeners();
+		return false;
+	}
+	
+	@Override
+	public T get(int index) {
+		return internalGet().get(index);
+	}
+	
+	@Override
+	public T set(int index, T element) {
+		synchronized (getMutex()) {
+			T ret = internalGet().set(index, element);
+			callCollectionChangedListeners();
+			return ret;
 		}
+	}
+	
+	@Override
+	public void add(int index, T element) {
+		synchronized (getMutex()) {
+			internalGet().add(index, element);
+			callCollectionChangedListeners();
+		}
+	}
+	
+	@Override
+	public T remove(int index) {
+		synchronized (getMutex()) {
+			T ret = internalGet().remove(index);
+			callCollectionChangedListeners();
+			return ret;
+		}
+	}
+	
+	@Override
+	public int indexOf(Object o) {
+		return internalGet().indexOf(o);
+	}
+	
+	@Override
+	public int lastIndexOf(Object o) {
+		return internalGet().lastIndexOf(o);
+	}
+	
+	@NotNull
+	@Override
+	public ListIterator<T> listIterator() {
+		return internalGet().listIterator();
+	}
+	
+	@NotNull
+	@Override
+	public ListIterator<T> listIterator(int index) {
+		return internalGet().listIterator(index);
+	}
+	
+	@NotNull
+	@Override
+	public List<T> subList(int fromIndex, int toIndex) {
+		return internalGet().subList(fromIndex, toIndex);
 	}
 	
 }
