@@ -139,6 +139,10 @@ public class TestConcurrentBase {
 		str.addTransformListener(s -> true, (obs, prev, next) -> cb.set(true));
 		str.set("text4");
 		Assert.assertTrue(cb.getValue());
+		
+		cb.set(false);
+		str.callListeners();
+		Assert.assertTrue(cb.getValue());
 	}
 	
 	@Test

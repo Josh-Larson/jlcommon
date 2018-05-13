@@ -112,6 +112,11 @@ public class ConcurrentBase<T> {
 		}
 	}
 	
+	public void callListeners() {
+		T value = this.value;
+		callListeners(value, value);
+	}
+	
 	@Override
 	@NotNull
 	public String toString() {
