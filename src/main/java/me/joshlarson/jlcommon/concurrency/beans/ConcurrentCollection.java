@@ -40,6 +40,11 @@ public class ConcurrentCollection<S extends Collection<T>, T> extends Concurrent
 	}
 	
 	@Override
+	protected S internalSet(S value) {
+		throw new UnsupportedOperationException("Cannot set a new collection!");
+	}
+	
+	@Override
 	public int size() {
 		return internalGet().size();
 	}
@@ -176,7 +181,11 @@ public class ConcurrentCollection<S extends Collection<T>, T> extends Concurrent
 	}
 	
 	public void addCollectionChangedListener(@NotNull Runnable listener) {
-		addCollectionChangedListener(listener, obs -> listener.run());
+		addCollectionChangedListener(listener, listener);
+	}
+	
+	public void addCollectionChangedListener(@NotNull Object key, @NotNull Runnable listener) {
+		addCollectionChangedListener(key, obs -> listener.run());
 	}
 	
 	public void addCollectionChangedListener(@NotNull ComplexCollectionChangedListener<ConcurrentCollection<S, T>> listener) {

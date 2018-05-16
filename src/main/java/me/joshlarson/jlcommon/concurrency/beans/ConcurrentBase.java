@@ -53,7 +53,9 @@ public class ConcurrentBase<T> {
 		this.prohibitNull = prohibitNull;
 		this.listeners = new HashMap<>();
 		
-		internalSet(value);
+		if (prohibitNull)
+			Objects.requireNonNull(value, "Value cannot be set to null!");
+		this.value = value;
 	}
 	
 	public T get() {
