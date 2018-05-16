@@ -9,6 +9,7 @@ module me.joshlarson.jlcommon {
 	exports me.joshlarson.jlcommon.data;
 	exports me.joshlarson.jlcommon.callback;
 	exports me.joshlarson.jlcommon.control;
+	exports me.joshlarson.jlcommon.collections;
 	exports me.joshlarson.jlcommon.concurrency;
 	exports me.joshlarson.jlcommon.concurrency.beans;
 	exports me.joshlarson.jlcommon.network;

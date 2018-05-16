@@ -13,7 +13,7 @@ targetCompatibility = 9
 
 def projectGroup = 'me.joshlarson'
 def projectName = 'jlcommon'
-def projectVersion = '1.5.2'
+def projectVersion = '1.5.3'
 group = projectGroup
 version = projectVersion
 
