@@ -5,15 +5,14 @@ plugins {
 	id 'maven'
 	id 'maven-publish'
 	id 'idea'
-	id 'com.zyxist.chainsaw' version '0.3.1'
 }
 
-sourceCompatibility = 9
-targetCompatibility = 9
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
 def projectGroup = 'me.joshlarson'
 def projectName = 'jlcommon'
-def projectVersion = '1.5.3'
+def projectVersion = '1.6.0'
 group = projectGroup
 version = projectVersion
 
