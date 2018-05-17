@@ -212,7 +212,7 @@ public abstract class Manager implements ServiceBase {
 	 *
 	 * @param services the collection of services
 	 */
-	public static void startRunStop(Collection<ServiceBase> services) {
+	public static void startRunStop(Collection<? extends ServiceBase> services) {
 		if (start(services))
 			run(services);
 		stop(services);
@@ -234,7 +234,7 @@ public abstract class Manager implements ServiceBase {
 	 * @param periodicSleepTime the time between isOperational checks during the run phase
 	 * @param services          the collection of services
 	 */
-	public static void startRunStop(long periodicSleepTime, Collection<ServiceBase> services) {
+	public static void startRunStop(long periodicSleepTime, Collection<? extends ServiceBase> services) {
 		if (start(services))
 			run(services, periodicSleepTime);
 		stop(services);
@@ -246,7 +246,7 @@ public abstract class Manager implements ServiceBase {
 	 * @param services the collection of services
 	 * @return TRUE if each endpoint was successfully started, FALSE otherwise
 	 */
-	public static boolean start(Collection<ServiceBase> services) {
+	public static boolean start(Collection<? extends ServiceBase> services) {
 		Log.i("Starting...");
 		for (ServiceBase s : services) {
 			try {
@@ -269,7 +269,7 @@ public abstract class Manager implements ServiceBase {
 	 *
 	 * @param services the collection of services
 	 */
-	public static void run(Collection<ServiceBase> services) {
+	public static void run(Collection<? extends ServiceBase> services) {
 		run(services, 100);
 	}
 	
@@ -279,7 +279,7 @@ public abstract class Manager implements ServiceBase {
 	 * @param services          the collection of services
 	 * @param periodicSleepTime the time to sleep between isOperational calls
 	 */
-	public static void run(Collection<ServiceBase> services, long periodicSleepTime) {
+	public static void run(Collection<? extends ServiceBase> services, long periodicSleepTime) {
 		while (Delay.sleepMilli(periodicSleepTime)) {
 			for (ServiceBase s : services) {
 				try {
@@ -302,7 +302,7 @@ public abstract class Manager implements ServiceBase {
 	 *
 	 * @param services the collection of services
 	 */
-	public static void stop(Collection<ServiceBase> services) {
+	public static void stop(Collection<? extends ServiceBase> services) {
 		Log.i("Stopping...");
 		for (ServiceBase s : services) {
 			try {
