@@ -89,7 +89,7 @@ public class TransferSet<T, S> implements Set<S> {
 	}
 	
 	public void addDestroyCallback(Consumer<S> callback) {
-		addCreateCallback(callback, callback);
+		addDestroyCallback(callback, callback);
 	}
 	
 	public void addDestroyCallback(Object key, Consumer<S> callback) {
