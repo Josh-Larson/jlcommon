@@ -24,10 +24,12 @@
 package me.joshlarson.jlcommon.collections;
 
 import me.joshlarson.jlcommon.concurrency.beans.ConcurrentMap;
+import me.joshlarson.jlcommon.log.Log;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -39,6 +41,8 @@ public class TransferSet<T, S> implements Set<S> {
 	private final Collection<S> immutable;
 	private final Function<T, Object> keyMapping;
 	private final Function<T, S> objectMapping;
+	private final Map<Object, Consumer<S>> createCallback;
+	private final Map<Object, Consumer<S>> destroyCallback;
 	
 	/**
 	 * Creates a new transfer set with the specified key and object mappings.  The key mapping
@@ -48,10 +52,12 @@ public class TransferSet<T, S> implements Set<S> {
 	 * @param objectMapping the function to convert source items into this set
 	 */
 	public TransferSet(Function<T, Object> keyMapping, Function<T, S> objectMapping) {
-		this.transferred = new ConcurrentMap<>();
+		this.transferred = new ConcurrentHashMap<>();
 		this.immutable = Collections.unmodifiableCollection(transferred.values());
 		this.keyMapping = keyMapping;
 		this.objectMapping = objectMapping;
+		this.createCallback = new ConcurrentHashMap<>();
+		this.destroyCallback = new ConcurrentHashMap<>();
 	}
 	
 	/**
@@ -67,11 +73,43 @@ public class TransferSet<T, S> implements Set<S> {
 			m.put(keyMapping.apply(t), t);
 		}
 		// O(|a|)
-		transferred.keySet().retainAll(m.keySet());
+		retainAll(m);
 		// O(|b|)
 		for (Entry<Object, T> e : m.entrySet()) {
-			transferred.computeIfAbsent(e.getKey(), k -> objectMapping.apply(e.getValue()));
+			transferred.computeIfAbsent(e.getKey(), k -> computeIfAbsent(e.getValue()));
 		}
+	}
+	
+	public void addCreateCallback(Consumer<S> callback) {
+		addCreateCallback(callback, callback);
+	}
+	
+	public void addCreateCallback(Object key, Consumer<S> callback) {
+		this.createCallback.put(key, callback);
+	}
+	
+	public void addDestroyCallback(Consumer<S> callback) {
+		addCreateCallback(callback, callback);
+	}
+	
+	public void addDestroyCallback(Object key, Consumer<S> callback) {
+		this.destroyCallback.put(key, callback);
+	}
+	
+	public void removeCreateCallback(Object key) {
+		this.createCallback.remove(key);
+	}
+	
+	public void removeDestroyCallback(Object key) {
+		this.destroyCallback.remove(key);
+	}
+	
+	public void clearCreateCallbacks() {
+		this.createCallback.clear();
+	}
+	
+	public void clearDestroyCallbacks() {
+		this.destroyCallback.clear();
 	}
 	
 	@Override
@@ -165,5 +203,33 @@ public class TransferSet<T, S> implements Set<S> {
 	@Override
 	public void forEach(Consumer<? super S> action) {
 		immutable.forEach(action);
+	}
+	
+	private S computeIfAbsent(T t) {
+		S val = objectMapping.apply(t);
+		for (Consumer<S> call : createCallback.values()) {
+			try {
+				call.accept(val);
+			} catch (Throwable e) {
+				Log.e(e);
+			}
+		}
+		return val;
+	}
+	
+	private void retainAll(Map<Object, T> m) {
+		for (Iterator<Entry<Object, S>> it = transferred.entrySet().iterator(); it.hasNext(); ) {
+			Entry<Object, S> e = it.next();
+			if (!m.containsKey(e.getKey())) {
+				for (Consumer<S> call : destroyCallback.values()) {
+					try {
+						call.accept(e.getValue());
+					} catch (Throwable t) {
+						Log.e(t);
+					}
+				}
+				it.remove();
+			}
+		}
 	}
 }

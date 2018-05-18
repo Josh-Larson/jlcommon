@@ -30,6 +30,7 @@ import org.junit.runners.JUnit4;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @RunWith(JUnit4.class)
 public class TestTransferSet {
@@ -46,7 +47,11 @@ public class TestTransferSet {
 		Assert.assertTrue(source.contains("obj1"));
 		Assert.assertTrue(source.contains("obj2"));
 		
+		AtomicInteger i = new AtomicInteger(0);
+		destination.addCreateCallback("call", s -> i.incrementAndGet());
 		destination.synchronize(source);
+		
+		Assert.assertEquals(2, i.get());
 		Assert.assertEquals(2, destination.size());
 		Assert.assertEquals(2, source.size());
 		Assert.assertTrue(destination.contains("obj1"));
@@ -64,12 +69,27 @@ public class TestTransferSet {
 		Assert.assertEquals(2, source.size());
 		Assert.assertTrue(source.contains(10));
 		Assert.assertTrue(source.contains(100));
-		
+
+		AtomicInteger create = new AtomicInteger(0);
+		AtomicInteger destroy = new AtomicInteger(0);
+		destination.addCreateCallback("call", s -> create.incrementAndGet());
+		destination.addDestroyCallback("call", s -> destroy.incrementAndGet());
 		destination.synchronize(source);
+
+		destination.synchronize(source);
+		Assert.assertEquals(2, create.get());
+		Assert.assertEquals(0, destroy.get());
 		Assert.assertEquals(2, destination.size());
 		Assert.assertEquals(2, source.size());
 		Assert.assertTrue(destination.contains("10"));
 		Assert.assertTrue(destination.contains("100"));
+		
+		source.clear();
+		destination.synchronize(source);
+		Assert.assertEquals(2, create.get());
+		Assert.assertEquals(2, destroy.get());
+		Assert.assertEquals(0, destination.size());
+		Assert.assertEquals(0, source.size());
 	}
 	
 }
