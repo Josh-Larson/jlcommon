@@ -31,7 +31,6 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.net.*;
 import java.util.Locale;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 /**
@@ -41,7 +40,6 @@ import java.util.function.Consumer;
 public class UDPServer {
 	
 	private final byte [] dataBuffer;
-	private final AtomicBoolean running;
 	private final InetSocketAddress bindAddr;
 	private final Consumer<DatagramPacket> callback;
 	private final BasicThread thread;
@@ -54,7 +52,6 @@ public class UDPServer {
 	
 	public UDPServer(@NotNull InetSocketAddress bindAddr, int packetSize, @NotNull Consumer<DatagramPacket> callback) {
 		this.dataBuffer = new byte[packetSize];
-		this.running = new AtomicBoolean(false);
 		this.bindAddr = bindAddr;
 		this.callback = callback;
 		this.thread = new BasicThread("udp-server-"+bindAddr, this::run);
@@ -90,7 +87,7 @@ public class UDPServer {
 	}
 	
 	public boolean isRunning() {
-		return running.get();
+		return thread.isExecuting();
 	}
 	
 	public boolean send(DatagramPacket packet) {
@@ -126,10 +123,12 @@ public class UDPServer {
 	
 	private void run() {
 		try {
-			while (running.get()) {
+			while (!Delay.isInterrupted()) {
+				Log.t("UDP Server Loop");
 				DatagramPacket packet = new DatagramPacket(dataBuffer, dataBuffer.length);
 				try {
 					socket.receive(packet);
+					Log.t("Received packet");
 					if (packet.getLength() > 0) {
 						byte [] buffer = new byte[packet.getLength()];
 						System.arraycopy(packet.getData(), 0, buffer, 0, packet.getLength());
@@ -147,8 +146,6 @@ public class UDPServer {
 			}
 		} catch (Exception e) {
 			Log.e(e);
-		} finally {
-			running.set(false);
 		}
 	}
 	
