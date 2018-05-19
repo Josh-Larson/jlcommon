@@ -124,11 +124,9 @@ public class UDPServer {
 	private void run() {
 		try {
 			while (!Delay.isInterrupted()) {
-				Log.t("UDP Server Loop");
 				DatagramPacket packet = new DatagramPacket(dataBuffer, dataBuffer.length);
 				try {
 					socket.receive(packet);
-					Log.t("Received packet");
 					if (packet.getLength() > 0) {
 						byte [] buffer = new byte[packet.getLength()];
 						System.arraycopy(packet.getData(), 0, buffer, 0, packet.getLength());
