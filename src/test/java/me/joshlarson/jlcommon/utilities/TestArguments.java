@@ -21,64 +21,33 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE   *
  * SOFTWARE.                                                                       *
  ***********************************************************************************/
-package me.joshlarson.jlcommon.control;
+package me.joshlarson.jlcommon.utilities;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicReference;
-
-public class IntentChain {
+@RunWith(JUnit4.class)
+public class TestArguments {
 	
-	private final IntentManager intentManager;
-	private final AtomicReference<Intent> intent;
-	
-	public IntentChain() {
-		this(IntentManager.getInstance());
+	@Test
+	public void testValidateSimple() {
+		Arguments.validate(true, "");
 	}
 	
-	public IntentChain(IntentManager intentManager) {
-		this(intentManager, null);
+	@Test(expected=IllegalArgumentException.class)
+	public void testValidateSimpleTrigger() {
+		Arguments.validate(false, "");
 	}
 	
-	public IntentChain(@Nullable Intent i) {
-		this(IntentManager.getInstance(), i);
+	@Test
+	public void testValidateSupplier() {
+		Arguments.validate(true, () -> "");
 	}
 	
-	public IntentChain(IntentManager intentManager, @Nullable Intent i) {
-		this.intentManager = intentManager;
-		this.intent = new AtomicReference<>(null);
-	}
-	
-	public void reset() {
-		intent.set(null);
-	}
-	
-	public IntentChain broadcastAfter(IntentManager intentManager, @NotNull Intent i) {
-		i.broadcastAfterIntent(intent.getAndSet(i), intentManager);
-		return this;
-	}
-	
-	public IntentChain broadcastAfter(@NotNull Intent i) {
-		Objects.requireNonNull(intentManager, "IntentManager is null");
-		i.broadcastAfterIntent(intent.getAndSet(i), intentManager);
-		return this;
-	}
-	
-	public static void broadcastChain(Intent ... intents) {
-		IntentManager intentManager = IntentManager.getInstance();
-		Objects.requireNonNull(intentManager, "IntentManager is null");
-		broadcastChain(intentManager, intents);
-	}
-	
-	public static void broadcastChain(@NotNull IntentManager intentManager, Intent ... intents) {
-		Objects.requireNonNull(intentManager, "IntentManager is null");
-		Intent prev = null;
-		for (Intent i : intents) {
-			i.broadcastAfterIntent(prev, intentManager);
-			prev = i;
-		}
+	@Test(expected=IllegalArgumentException.class)
+	public void testValidateSupplierTrigger() {
+		Arguments.validate(false, () -> "");
 	}
 	
 }

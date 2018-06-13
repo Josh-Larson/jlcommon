@@ -63,16 +63,16 @@ public class ScheduledThreadPool {
 		return running.isRunning();
 	}
 	
-	public void executeWithFixedRate(long initialDelay, long time, @NotNull Runnable runnable) {
+	public ScheduledFuture<?> executeWithFixedRate(long initialDelay, long time, @NotNull Runnable runnable) {
 		if (!running.expectRunning())
-			return;
-		executor.scheduleAtFixedRate(() -> ThreadUtilities.safeRun(runnable), initialDelay, time, TimeUnit.MILLISECONDS);
+			return null;
+		return executor.scheduleAtFixedRate(() -> ThreadUtilities.safeRun(runnable), initialDelay, time, TimeUnit.MILLISECONDS);
 	}
 	
-	public void executeWithFixedDelay(long initialDelay, long time, @NotNull Runnable runnable) {
+	public ScheduledFuture<?> executeWithFixedDelay(long initialDelay, long time, @NotNull Runnable runnable) {
 		if (!running.expectRunning())
-			return;
-		executor.scheduleWithFixedDelay(() -> ThreadUtilities.safeRun(runnable), initialDelay, time, TimeUnit.MILLISECONDS);
+			return null;
+		return executor.scheduleWithFixedDelay(() -> ThreadUtilities.safeRun(runnable), initialDelay, time, TimeUnit.MILLISECONDS);
 	}
 	
 	@Nullable

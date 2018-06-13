@@ -21,64 +21,30 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE   *
  * SOFTWARE.                                                                       *
  ***********************************************************************************/
-package me.joshlarson.jlcommon.control;
+package me.joshlarson.jlcommon.utilities;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import java.util.function.Supplier;
 
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicReference;
-
-public class IntentChain {
+public class Arguments {
 	
-	private final IntentManager intentManager;
-	private final AtomicReference<Intent> intent;
-	
-	public IntentChain() {
-		this(IntentManager.getInstance());
+	/**
+	 * Throws an illegal argument exception if 'test' is false
+	 * @param test the boolean value to test
+	 * @param message the message for the illegal argument exception
+	 */
+	public static void validate(boolean test, String message) {
+		if (!test)
+			throw new IllegalArgumentException(message);
 	}
 	
-	public IntentChain(IntentManager intentManager) {
-		this(intentManager, null);
-	}
-	
-	public IntentChain(@Nullable Intent i) {
-		this(IntentManager.getInstance(), i);
-	}
-	
-	public IntentChain(IntentManager intentManager, @Nullable Intent i) {
-		this.intentManager = intentManager;
-		this.intent = new AtomicReference<>(null);
-	}
-	
-	public void reset() {
-		intent.set(null);
-	}
-	
-	public IntentChain broadcastAfter(IntentManager intentManager, @NotNull Intent i) {
-		i.broadcastAfterIntent(intent.getAndSet(i), intentManager);
-		return this;
-	}
-	
-	public IntentChain broadcastAfter(@NotNull Intent i) {
-		Objects.requireNonNull(intentManager, "IntentManager is null");
-		i.broadcastAfterIntent(intent.getAndSet(i), intentManager);
-		return this;
-	}
-	
-	public static void broadcastChain(Intent ... intents) {
-		IntentManager intentManager = IntentManager.getInstance();
-		Objects.requireNonNull(intentManager, "IntentManager is null");
-		broadcastChain(intentManager, intents);
-	}
-	
-	public static void broadcastChain(@NotNull IntentManager intentManager, Intent ... intents) {
-		Objects.requireNonNull(intentManager, "IntentManager is null");
-		Intent prev = null;
-		for (Intent i : intents) {
-			i.broadcastAfterIntent(prev, intentManager);
-			prev = i;
-		}
+	/**
+	 * Throws an illegal argument exception if 'test' is false
+	 * @param test the boolean value to test
+	 * @param messageSupplier the message for the illegal argument exception, calculated only when 'test' is false for performance reasons
+	 */
+	public static void validate(boolean test, Supplier<String> messageSupplier) {
+		if (!test)
+			throw new IllegalArgumentException(messageSupplier.get());
 	}
 	
 }
