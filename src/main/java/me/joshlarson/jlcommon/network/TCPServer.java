@@ -27,21 +27,27 @@ import me.joshlarson.jlcommon.annotations.Unused;
 import me.joshlarson.jlcommon.concurrency.BasicThread;
 import me.joshlarson.jlcommon.concurrency.ThreadPool;
 import me.joshlarson.jlcommon.log.Log;
+import me.joshlarson.jlcommon.network.SSLEngineWrapper.SSLClosedException;
 import me.joshlarson.jlcommon.network.TCPServer.TCPSession;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.net.ssl.SSLEngine;
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class TCPServer<T extends TCPSession> {
@@ -114,13 +120,18 @@ public class TCPServer<T extends TCPSession> {
 	public void disconnect(@NotNull SocketChannel sc) {
 		T session = channels.remove(sc);
 		if (session == null) {
-			Log.w("TCPServer - unknown channel in disconnect: %d", sc);
+			Log.w("TCPServer - unknown channel in disconnect: %s", sc);
 			return;
 		}
 		sessionIdToChannel.remove(session.getSessionId());
 		
 		session.close();
 		callbackThread.execute(session::onDisconnected);
+	}
+	
+	@NotNull
+	public List<T> getSessions() {
+		return new ArrayList<>(sessionIdToChannel.values());
 	}
 	
 	@Nullable
@@ -228,10 +239,10 @@ public class TCPServer<T extends TCPSession> {
 		disconnect(sc);
 	}
 	
-	private static void safeClose(@NotNull Channel c) {
+	private static void safeClose(@NotNull Closeable c) {
 		try {
 			c.close();
-		} catch (IOException e) {
+		} catch (Exception e) {
 			// Ignored - as long as it's closed
 		}
 	}
@@ -306,6 +317,64 @@ public class TCPServer<T extends TCPSession> {
 		}
 		
 		protected abstract void onIncomingData(@NotNull byte[] data);
+		
+	}
+	
+	public abstract static class SecureTCPSession extends TCPSession {
+		
+		private final SSLEngineWrapper security;
+		
+		protected SecureTCPSession(@NotNull SocketChannel sc, @NotNull SSLEngine engine, int bufferSize, @NotNull Consumer<Runnable> executor) {
+			super(sc);
+			this.security = new SSLEngineWrapper(engine, bufferSize, executor, super::writeToChannel);
+			security.setReadCallback(this::onIncomingData);
+		}
+		
+		/**
+		 * Starts the SSL Close mechanism
+		 */
+		public void startSSLClose() {
+			safeClose(security);
+		}
+		
+		/**
+		 * Determines whether or not the SSL handshake has been completed
+		 * @return TRUE if this session has been initialized, FALSE otherwise
+		 */
+		public boolean isConnected() {
+			return security.isConnectionInitialized();
+		}
+		
+		@Override
+		protected void writeToChannel(@NotNull ByteBuffer data) throws IOException {
+			try {
+				security.write(data);
+			} catch (SSLClosedException e) {
+				close();
+			}
+		}
+		
+		@Override
+		protected void writeToChannel(@NotNull byte[] data) throws IOException {
+			try {
+				security.write(data);
+			} catch (SSLClosedException e) {
+				close();
+			}
+		}
+		
+		protected final void onIncomingData(@NotNull byte[] data) {
+			try {
+				security.read(data);
+			} catch (SSLClosedException | ClosedChannelException e) {
+				close();
+			} catch (IOException e) {
+				throw new RuntimeException("Failed to process incoming encrypted data for " + getRemoteAddress(), e);
+			}
+		}
+		
+		protected abstract void onIncomingData(@NotNull ByteBuffer data);
+		
 	}
 	
 }

@@ -110,7 +110,13 @@ public class TCPSocket {
 	public void createConnection() {
 		synchronized (stateLock()) {
 			checkAndSetState(SocketState.CLOSED, SocketState.CREATED);
-			socket = createSocket();
+			try {
+				socket = createSocket();
+			} catch (IOException e) {
+				socket = null;
+				checkAndSetState(SocketState.CREATED, SocketState.CLOSED);
+				throw new RuntimeException(e);
+			}
 		}
 	}
 	
@@ -194,7 +200,7 @@ public class TCPSocket {
 		}
 	}
 	
-	protected Socket createSocket() {
+	protected Socket createSocket() throws IOException {
 		return new Socket();
 	}
 	

@@ -1,27 +1,30 @@
 plugins {
 	id 'java'
 	id 'application'
-	id "com.jfrog.bintray" version "1.8.0"
+	id "com.jfrog.bintray" version "1.8.4"
 	id 'maven'
 	id 'maven-publish'
 	id 'idea'
+	id "org.javamodularity.moduleplugin" version "1.3.0"
 }
-
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
 
 def projectGroup = 'me.joshlarson'
 def projectName = 'jlcommon'
-def projectVersion = '1.6.9'
+def projectVersion = '1.8.4'
+def projectModule = 'me.joshlarson.jlcommon'
+
 group = projectGroup
 version = projectVersion
+sourceCompatibility = 11
+targetCompatibility = 11
 
 repositories {
 	jcenter()
 }
 
 dependencies {
-	compile group: 'org.jetbrains', name: 'annotations', version: '16.0.1'
+	compile group: 'org.jetbrains', name: 'annotations', version: '16.0.3'
+	
 	testCompile 'junit:junit:4.12'
 }
 
@@ -30,6 +33,13 @@ jar {
 	classifier = null
 	version = projectVersion
 	from sourceSets.main.allSource
+}
+
+javadoc {
+	inputs.property("moduleName", projectModule)
+	doFirst {
+		options.addStringOption('-module-path', classpath.asPath)
+	}
 }
 
 task sourcesJar(type: Jar, dependsOn: classes) {
@@ -51,32 +61,6 @@ artifacts {
 	archives javadocJar
 }
 
-task wrapper(type: Wrapper) {
-	gradleVersion = "4.6"
-}
-
-def pomConfig = {
-	licenses {
-		license {
-			name "The MIT License"
-			url "https://opensource.org/licenses/MIT"
-			distribution "repo"
-		}
-	}
-	developers {
-		developer {
-			id "josh-larson"
-			name "Josh Larson"
-			email "joshua-github@ourclan.net"
-		}
-	}
-	
-	scm {
-		url "https://github.com/Josh-Larson/jlcommon"
-	}
-}
-
-
 // Create the publication with the pom configuration:
 publishing {
 	publications {
@@ -84,24 +68,38 @@ publishing {
 			from components.java
 			artifact sourcesJar
 			artifact javadocJar
-			groupId projectGroup
-			artifactId projectName
+			groupId = projectGroup
+			artifactId = projectName
 			version projectVersion
-			pom.withXml {
-				def root = asNode()
-				root.appendNode('description', 'A Common Java Library')
-				root.appendNode('name', 'JLCommon')
-				root.appendNode('url', 'https://github.com/Josh-Larson/jlcommon')
-				root.children().last() + pomConfig
+			pom {
+				name = 'jlcommon'
+				description = 'A Common Java Library'
+				url = 'https://github.com/Josh-Larson/jlcommon'
+				licenses {
+					license {
+						name = 'The MIT License'
+						url = 'https://opensource.org/licenses/MIT'
+					}
+				}
+				developers {
+					developer {
+						id = 'Josh-Larson'
+						name = 'Josh Larson'
+						email = 'joshua-github@ourclan.net'
+					}
+				}
+				scm {
+					url = 'https://github.com/Josh-Larson/jlcommon'
+				}
 			}
 		}
 	}
 }
 
 bintray {
-	user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
-	key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
-	publications = ['jlcommon']
+	user ((String) (project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')))
+	key ((String) (project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')))
+	publications 'jlcommon'
 	pkg {
 		repo = 'jlcommon'
 		name = projectName

@@ -26,104 +26,115 @@ package me.joshlarson.jlcommon.control;
 import me.joshlarson.jlcommon.concurrency.Delay;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
-@RunWith(JUnit4.class)
 public class TestIntentManager {
 	
 	@Test
-	public void testBroadcast() {
+	public void testStartStop() {
 		IntentManager intentManager = new IntentManager(1);
-		intentManager.initialize();
-		IntentManager.setInstance(intentManager);
 		
-		registerDummyHandler();
-		TestIntent test = new TestIntent();
-		test.broadcast();
-		long started = System.nanoTime();
-		while (!test.isComplete() && System.nanoTime() - started <= 1E9) {
-			Delay.sleepMicro(10);
+		Assert.assertTrue(intentManager.isRunning());
+		
+		intentManager.close();
+		
+		Assert.assertFalse(intentManager.isRunning());
+	}
+	
+	@Test
+	public void testBroadcast() {
+		try (IntentManager intentManager = new IntentManager(1)) {
+			IntentManager.setInstance(intentManager);
+			
+			registerDummyHandler();
+			TestIntent test = new TestIntent();
+			test.broadcast();
+			waitForTrue(test::isComplete);
+			
+			Assert.assertEquals(0, intentManager.getIntentCount());
+			Assert.assertTrue(test.isBroadcasted());
+			Assert.assertTrue(test.isComplete());
 		}
-		Assert.assertTrue(test.isBroadcasted());
-		Assert.assertTrue(test.isComplete());
-		
-		intentManager.terminate();
 	}
 	
 	@Test
 	public void testServiceRegistration() {
-		IntentManager intentManager = new IntentManager(1);
-		intentManager.initialize();
-		IntentManager.setInstance(intentManager);
-		
-		AtomicInteger called = new AtomicInteger(0);
-		TestService service = new TestService(called);
-		service.setIntentManager(intentManager);
-		
-		TestIntent test = new TestIntent();
-		test.broadcast();
-		long started = System.nanoTime();
-		while (!test.isComplete() && System.nanoTime() - started <= 1E9) {
-			Delay.sleepMicro(10);
+		try (IntentManager intentManager = new IntentManager(1)) {
+			IntentManager.setInstance(intentManager);
+			
+			AtomicInteger called = new AtomicInteger(0);
+			TestService service = new TestService(called);
+			service.setIntentManager(intentManager);
+			
+			TestIntent test = new TestIntent();
+			test.broadcast();
+			long started = System.nanoTime();
+			while (!test.isComplete() && System.nanoTime() - started <= 1E9) {
+				Delay.sleepMilli(10);
+			}
+			Assert.assertEquals(0, intentManager.getIntentCount());
+			Assert.assertTrue(test.isBroadcasted());
+			Assert.assertTrue(test.isComplete());
+			Assert.assertEquals(1, called.get());
+			
+			service.setIntentManager(null);
+			
+			called.set(0);
+			test = new TestIntent();
+			test.broadcast();
+			Delay.sleepMilli(100);
+			Assert.assertTrue(test.isBroadcasted());
+			Assert.assertTrue(test.isComplete());
+			Assert.assertEquals(0, called.get());
 		}
-		Assert.assertTrue(test.isBroadcasted());
-		Assert.assertTrue(test.isComplete());
-		Assert.assertEquals(1, called.get());
-		
-		service.setIntentManager(null);
-		
-		called.set(0);
-		test = new TestIntent();
-		test.broadcast();
-		Delay.sleepMilli(100);
-		Assert.assertTrue(test.isBroadcasted());
-		Assert.assertTrue(test.isComplete());
-		Assert.assertEquals(0, called.get());
-		
-		intentManager.terminate();
 	}
 	
 	@Test
 	public void testSubServiceRegistration() {
-		IntentManager intentManager = new IntentManager(1);
-		intentManager.initialize();
-		IntentManager.setInstance(intentManager);
-		
-		AtomicInteger called = new AtomicInteger(0);
-		TestSubService service = new TestSubService(called);
-		service.setIntentManager(intentManager);
-		
-		TestIntent test = new TestIntent();
-		test.broadcast();
-		long started = System.nanoTime();
-		while (!test.isComplete() && System.nanoTime() - started <= 1E9) {
-			Delay.sleepMicro(10);
+		try (IntentManager intentManager = new IntentManager(1)) {
+			IntentManager.setInstance(intentManager);
+			
+			AtomicInteger called = new AtomicInteger(0);
+			TestSubService service = new TestSubService(called);
+			service.setIntentManager(intentManager);
+			
+			TestIntent test = new TestIntent();
+			test.broadcast();
+			long started = System.nanoTime();
+			while (!test.isComplete() && System.nanoTime() - started <= 1E9) {
+				Delay.sleepMicro(10);
+			}
+			Assert.assertEquals(0, intentManager.getIntentCount());
+			Assert.assertTrue(test.isBroadcasted());
+			Assert.assertTrue(test.isComplete());
+			Assert.assertEquals(2, called.get());
+			
+			service.setIntentManager(null);
+			
+			called.set(0);
+			test = new TestIntent();
+			test.broadcast();
+			Delay.sleepMilli(100);
+			Assert.assertTrue(test.isBroadcasted());
+			Assert.assertTrue(test.isComplete());
+			Assert.assertEquals(0, called.get());
 		}
-		Assert.assertTrue(test.isBroadcasted());
-		Assert.assertTrue(test.isComplete());
-		Assert.assertEquals(2, called.get());
-		
-		service.setIntentManager(null);
-		
-		called.set(0);
-		test = new TestIntent();
-		test.broadcast();
-		Delay.sleepMilli(100);
-		Assert.assertTrue(test.isBroadcasted());
-		Assert.assertTrue(test.isComplete());
-		Assert.assertEquals(0, called.get());
-		
-		intentManager.terminate();
 	}
 	
 	private static void registerDummyHandler() {
 		IntentManager intentManager = IntentManager.getInstance();
 		Assert.assertNotNull(intentManager);
-		intentManager.registerForIntent(TestIntent.class, intent -> {});
+		intentManager.registerForIntent(TestIntent.class, "dummy", intent -> {});
+	}
+	
+	private static void waitForTrue(Supplier<Boolean> test) {
+		long started = System.nanoTime();
+		while (!test.get() && System.nanoTime() - started <= 1E9) {
+			Delay.sleepMicro(10);
+		}
+		Assert.assertTrue(test.get());
 	}
 	
 	private static class TestService extends Service {
@@ -136,6 +147,7 @@ public class TestIntentManager {
 		
 		@IntentHandler
 		private void handleTestIntent(TestIntent ti) {
+			Assert.assertEquals(1, getIntentManager().getIntentCount());
 			called.incrementAndGet();
 		}
 		
@@ -152,6 +164,7 @@ public class TestIntentManager {
 		
 		@IntentHandler
 		private void handleTestIntentTwo(TestIntent ti) {
+			Assert.assertEquals(1, getIntentManager().getIntentCount());
 			called.incrementAndGet();
 		}
 		

@@ -36,6 +36,24 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class TestThreadPool {
 	
 	@Test
+	public void testBasicThreadNoStop() {
+		AtomicBoolean started = new AtomicBoolean(false);
+		BasicThread thread = new BasicThread("thread", () -> started.set(true));
+		long start;
+		for (int i = 0; i < 3; i++) {
+			started.set(false);
+			thread.start();
+			start = System.nanoTime();
+			while ((!started.get() || thread.isExecuting()) && System.nanoTime() - start < 1E9) {
+				Delay.sleepMicro(100);
+			}
+			Assert.assertTrue(started.get());
+			Assert.assertFalse(thread.isExecuting());
+		}
+		Assert.assertTrue(thread.awaitTermination(100));
+	}
+	
+	@Test
 	public void testStartThread() {
 		AtomicBoolean started = new AtomicBoolean(false);
 		ThreadPool thread = new ThreadPool(1, "thread");

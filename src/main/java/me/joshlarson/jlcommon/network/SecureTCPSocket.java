@@ -21,102 +21,42 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE   *
  * SOFTWARE.                                                                       *
  ***********************************************************************************/
-package me.joshlarson.jlcommon.concurrency.beans;
+package me.joshlarson.jlcommon.network;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.util.function.LongUnaryOperator;
+import javax.net.SocketFactory;
+import javax.net.ssl.SSLSocketFactory;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.util.Objects;
 
-public class ConcurrentLong extends ConcurrentBase<Long> {
+public class SecureTCPSocket extends TCPSocket {
 	
-	public ConcurrentLong() {
-		super(true, 0L);
+	private @NotNull SocketFactory socketFactory;
+	
+	public SecureTCPSocket() {
+		this.socketFactory = SSLSocketFactory.getDefault();
 	}
 	
-	public ConcurrentLong(@NotNull Long value) {
-		super(true, value);
+	public SecureTCPSocket(int bufferSize) {
+		super(bufferSize);
+		this.socketFactory = SSLSocketFactory.getDefault();
 	}
 	
-	public ConcurrentLong(long value) {
-		super(true, value);
+	public SecureTCPSocket(InetSocketAddress address, int bufferSize) {
+		super(address, bufferSize);
+		this.socketFactory = SSLSocketFactory.getDefault();
+	}
+	
+	public void setSocketFactory(@NotNull SocketFactory socketFactory) {
+		this.socketFactory = Objects.requireNonNull(socketFactory);
 	}
 	
 	@Override
-	@NotNull
-	public Long get() {
-		return super.get();
-	}
-	
-	@Override
-	@NotNull
-	public Long set(@NotNull Long value) {
-		return super.set(value);
-	}
-	
-	public long getValue() {
-		return get();
-	}
-	
-	public long setValue(long value) {
-		return set(value);
-	}
-	
-	public long incrementAndGet() {
-		return addAndGet(1);
-	}
-	
-	public long decrementAndGet() {
-		return addAndGet(-1);
-	}
-	
-	public long updateAndGet(@NotNull LongUnaryOperator op) {
-		synchronized (getMutex()) {
-			long newValue = op.applyAsLong(internalGet());
-			internalSet(newValue);
-			return newValue;
-		}
-	}
-	
-	public boolean compareAndSet(long expected, long newValue) {
-		synchronized (getMutex()) {
-			if (internalGet() != expected)
-				return false;
-			long prev = internalSet(newValue);
-			assert prev == expected : "Concurrent modification";
-		}
-		return true;
-	}
-	
-	public long getAndIncrement() {
-		synchronized (getMutex()) {
-			return internalSet(internalGet() + 1);
-		}
-	}
-	
-	public long getAndDecrement() {
-		synchronized (getMutex()) {
-			return internalSet(internalGet() - 1);
-		}
-	}
-	
-	public long getAndUpdate(@NotNull LongUnaryOperator op) {
-		synchronized (getMutex()) {
-			return internalSet(op.applyAsLong(internalGet()));
-		}
-	}
-	
-	public long addAndGet(long delta) {
-		synchronized (getMutex()) {
-			long newValue = internalGet() + delta;
-			internalSet(newValue);
-			return newValue;
-		}
-	}
-	
-	public long getAndAdd(long delta) {
-		synchronized (getMutex()) {
-			return internalSet(internalGet() + delta);
-		}
+	protected Socket createSocket() throws IOException {
+		return socketFactory.createSocket();
 	}
 	
 }

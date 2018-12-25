@@ -70,7 +70,7 @@ public class TestTCP {
 		
 		socket.connect();
 		
-		for (int i = 0; i < 100 && !clientConnection.get(); i++)
+		for (int i = 0; i < 100 && (!serverConnection.get() || !clientConnection.get()); i++)
 			Delay.sleepMilli(1); // Waiting for the concurrent callback
 		
 		Assert.assertNotNull(sess.get());

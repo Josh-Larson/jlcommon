@@ -43,7 +43,7 @@ import java.util.function.Consumer;
  */
 public abstract class Service implements ServiceBase {
 	
-	private final Map<Class<? extends Intent>, List<Consumer<? extends Intent>>> registration;
+	private final Map<Class<? extends Intent>, List<Object>> registration;
 	private final AtomicReference <IntentManager> intentManager;
 	
 	public Service() {
@@ -91,21 +91,19 @@ public abstract class Service implements ServiceBase {
 		return intentManager.get();
 	}
 	
-	@SuppressWarnings("unchecked")
-	private void unregisterIntentHandlers(@NotNull IntentRegistry registry) {
-		for (Entry<Class<? extends Intent>, List<Consumer<? extends Intent>>> e : registration.entrySet()) {
-			e.getValue().forEach(c -> registry.unregisterForIntent((Class<Intent>)e.getKey(), (Consumer<Intent>)c));
+	private void unregisterIntentHandlers(@NotNull IntentManager registry) {
+		for (Entry<Class<? extends Intent>, List<Object>> e : registration.entrySet()) {
+			e.getValue().forEach(c -> registry.unregisterForIntent(e.getKey(), c));
 		}
 		registration.clear();
 	}
 	
-	@SuppressWarnings("unchecked")
-	private void registerIntentHandlers(@NotNull IntentRegistry registry) {
+	private void registerIntentHandlers(@NotNull IntentManager registry) {
 		registerIntentHandlers(getClass(), registry);
 	}
 	
 	@SuppressWarnings("unchecked")
-	private void registerIntentHandlers(@NotNull Class<? extends Service> klass, @NotNull IntentRegistry registry) {
+	private void registerIntentHandlers(@NotNull Class<? extends Service> klass, @NotNull IntentManager registry) {
 		for (Method m : klass.getDeclaredMethods()) {
 			if (m.isAnnotationPresent(IntentHandler.class)) {
 				if (m.getParameterCount() == 1) {
@@ -115,10 +113,12 @@ public abstract class Service implements ServiceBase {
 						if (Modifier.isProtected(m.getModifiers()) || Modifier.isPublic(m.getModifiers()))
 							Log.w("Intent handler '%s::%s' is not (package) private!", klass.getName(), m.getName());
 						m.setAccessible(true);
+						
+						Object consumerKey = getClass().getName() + "#" + m.getName();
 						Class<Intent> intentClass = (Class<Intent>) paramClass;
 						Consumer<Intent> intentConsumer = i -> invoke(m, i, paramClass);
-						registry.registerForIntent(intentClass, intentConsumer);
-						registration.computeIfAbsent(intentClass, c -> new CopyOnWriteArrayList<>()).add(intentConsumer);
+						registry.registerForIntent(intentClass, consumerKey, intentConsumer);
+						registration.computeIfAbsent(intentClass, c -> new CopyOnWriteArrayList<>()).add(consumerKey);
 					}
 				}
 			}

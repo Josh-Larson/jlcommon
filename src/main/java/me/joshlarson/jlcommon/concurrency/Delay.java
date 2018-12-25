@@ -95,6 +95,7 @@ public class Delay {
 	 * Clears the interrupted flag so future calls to isInterrupted will return FALSE
 	 */
 	public static void clearInterrupted() {
+		//noinspection ResultOfMethodCallIgnored - just need to clear the flag
 		Thread.interrupted();
 	}
 	

@@ -46,6 +46,10 @@ public class BasicThread {
 			try {
 				runnable.run();
 			} finally {
+				// Stop the thread pool, so that the caller only needs to know if their code is executing
+				if (threadPool.isRunning())
+					threadPool.stop(false);
+				
 				executing.set(false);
 			}
 		});

@@ -72,7 +72,7 @@ public class SafeMain {
 					main.join();
 				} catch (InterruptedException e) {
 					main.interrupt();
-					Thread.interrupted();
+					Delay.clearInterrupted();
 				}
 			}
 		} finally {

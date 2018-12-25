@@ -29,85 +29,99 @@ import me.joshlarson.jlcommon.log.Log;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
-public class IntentManager implements IntentRegistry {
+import static java.util.stream.Collectors.toList;
+
+public class IntentManager implements AutoCloseable {
 	
 	private static final AtomicReference<IntentManager> INSTANCE = new AtomicReference<>(null);
 	
-	private final Map<Class<? extends Intent>, List<Consumer<? extends Intent>>> intentRegistrations;
-	private final IntentSpeedRecorder speedRecorder;
+	private final Map<Class<? extends Intent>, List<IntentRunner<? extends Intent>>> intentRegistrations;
 	private final ThreadPool processThreads;
+	private final AtomicLong queuedIntents;
 	
 	public IntentManager(int threadCount) {
 		this(false, threadCount);
 	}
 	
 	public IntentManager(boolean priorityScheduling, int threadCount) {
+		this(priorityScheduling, threadCount, 8);
+	}
+	
+	public IntentManager(boolean priorityScheduling, int threadCount, int priority) {
 		this.intentRegistrations = new ConcurrentHashMap<>();
-		this.speedRecorder = new IntentSpeedRecorder();
 		this.processThreads = new ThreadPool(priorityScheduling, threadCount, "intent-processor-%d");
+		this.queuedIntents = new AtomicLong(0);
 		
-		this.processThreads.setPriority(8);
+		this.processThreads.setPriority(priority);
+		this.processThreads.start();
 	}
 	
-	public void initialize() {
-		processThreads.start();
+	public boolean isRunning() {
+		return processThreads.isRunning();
 	}
 	
-	public void terminate() {
-		terminate(true);
+	@Override
+	public void close() {
+		close(true, 1000);
 	}
 	
-	public void terminate(boolean interrupt) {
+	public boolean close(boolean interrupt, long timeout) {
+		if (!processThreads.isRunning())
+			return true;
 		processThreads.stop(interrupt);
-		processThreads.awaitTermination(500);
+		return processThreads.awaitTermination(timeout);
 	}
 	
 	public void setPriority(int priority) {
 		processThreads.setPriority(priority);
 	}
 	
-	public int getIntentCount() {
-		return processThreads.getQueuedTasks();
+	public long getIntentCount() {
+		return queuedIntents.get();
 	}
 	
 	@NotNull
-	public IntentSpeedRecorder getSpeedRecorder() {
-		return speedRecorder;
+	public List<IntentSpeedStatistics> getSpeedRecorder() {
+		return intentRegistrations.values().stream().flatMap(Collection::stream).map(IntentRunner::toSpeedStatistics).collect(toList());
 	}
 	
-	@SuppressWarnings("unchecked")
 	public <E extends Intent> void broadcastIntent(@NotNull E i) {
-		List<Consumer<? extends Intent>> receivers = intentRegistrations.get(i.getClass());
+		List<IntentRunner<? extends Intent>> receivers = intentRegistrations.get(i.getClass());
 		if (receivers == null || !processThreads.isRunning() || receivers.isEmpty()) {
+			i.setRemaining(0);
 			i.markAsComplete(this);
 			return;
 		}
 		
-		AtomicInteger remaining = new AtomicInteger(receivers.size());
-		receivers.forEach(r -> processThreads.execute(new IntentRunner<>((Consumer<E>) r, i, remaining)));
+		queuedIntents.incrementAndGet();
+		i.setRemaining(receivers.size());
+		for (IntentRunner<? extends Intent> r : receivers)
+			processThreads.execute(new IntentExecutor<>(r, i));
 	}
 	
-	@Override
+	public <T extends Intent> void registerForIntent(@NotNull Class<T> c, @NotNull Object consumerKey, @NotNull Consumer<T> r) {
+		intentRegistrations.computeIfAbsent(c, s -> new CopyOnWriteArrayList<>()).add(new IntentRunner<>(consumerKey, c, r));
+	}
+	
+	@Deprecated
 	public <T extends Intent> void registerForIntent(@NotNull Class<T> c, @NotNull Consumer<T> r) {
-		intentRegistrations.computeIfAbsent(c, s -> new CopyOnWriteArrayList<>()).add(r);
+		registerForIntent(c, r, r);
 	}
 	
-	@Override
-	public <T extends Intent> void unregisterForIntent(@NotNull Class<T> c, @NotNull Consumer<T> r) {
-		List<Consumer<? extends Intent>> intents = intentRegistrations.get(c);
+	public <T extends Intent> void unregisterForIntent(@NotNull Class<T> c, @NotNull Object consumerKey) {
+		List<IntentRunner<? extends Intent>> intents = intentRegistrations.get(c);
 		if (intents == null)
 			return;
-		intents.remove(r);
+		intents.removeIf(runner -> runner.getKey().equals(consumerKey));
 	}
 	
 	@Nullable
@@ -117,43 +131,65 @@ public class IntentManager implements IntentRegistry {
 	
 	public static void setInstance(IntentManager intentManager) {
 		IntentManager prev = INSTANCE.getAndSet(intentManager);
-		if (prev != null && prev.processThreads.isRunning())
-			prev.terminate();
+		if (prev != null)
+			prev.close();
 	}
 	
-	public static class IntentSpeedRecorder {
+	public static class IntentSpeedStatistics implements Comparable<IntentSpeedStatistics> {
 		
-		private final Map<Consumer<? extends Intent>, IntentSpeedRecord> times;
+		private final Object key;
+		private final Class<? extends Intent> intent;
+		private final long totalTime;
+		private final long count;
+		private final double average;
 		
-		public IntentSpeedRecorder() {
-			this.times = new ConcurrentHashMap<>();
-		}
-		
-		private <E extends Intent> void addRecord(@NotNull Class<E> intent, @NotNull Consumer<E> consumer, long timeNanos) {
-			IntentSpeedRecord record = times.computeIfAbsent(consumer, s -> new IntentSpeedRecord(intent, consumer));
-			record.addTime(timeNanos);
-		}
-		
-		@Nullable
-		public IntentSpeedRecord getTime(@NotNull Consumer<? extends Intent> consumer) {
-			return times.get(consumer);
+		public IntentSpeedStatistics(Object key, Class<? extends Intent> intent, long totalTime, long count) {
+			this.key = key;
+			this.intent = intent;
+			this.totalTime = totalTime;
+			this.count = count;
+			this.average = totalTime / (double) count;
 		}
 		
 		@NotNull
-		public List<IntentSpeedRecord> getAllTimes() {
-			return new ArrayList<>(times.values());
+		public Object getKey() {
+			return key;
+		}
+		
+		@NotNull
+		public Class<? extends Intent> getIntent() {
+			return intent;
+		}
+		
+		public long getTotalTime() {
+			return totalTime;
+		}
+		
+		public long getCount() {
+			return count;
+		}
+		
+		public double getAverage() {
+			return average;
+		}
+		
+		@Override
+		public int compareTo(@NotNull IntentManager.IntentSpeedStatistics o) {
+			return Long.compare(totalTime, o.totalTime);
 		}
 		
 	}
 	
-	public static class IntentSpeedRecord implements Comparable<IntentSpeedRecord> {
+	private class IntentRunner<E extends Intent> implements Comparable<IntentRunner> {
 		
-		private final Class<? extends Intent> intent;
-		private final Consumer<? extends Intent> consumer;
+		private final Object key;
+		private final Class<E> intent;
+		private final Consumer<E> consumer;
 		private final AtomicLong time;
 		private final AtomicLong count;
 		
-		public IntentSpeedRecord(@NotNull Class<? extends Intent> intent, @NotNull Consumer<? extends Intent> consumer) {
+		public IntentRunner(@NotNull Object key, @NotNull Class<E> intent, @NotNull Consumer<E> consumer) {
+			this.key = key;
 			this.intent = intent;
 			this.consumer = consumer;
 			this.time = new AtomicLong(0);
@@ -166,8 +202,31 @@ public class IntentManager implements IntentRegistry {
 		}
 		
 		@NotNull
-		public Consumer<? extends Intent> getConsumer() {
-			return consumer;
+		public Object getKey() {
+			return key;
+		}
+		
+		@SuppressWarnings("unchecked")
+		public <T extends Intent> void broadcast(T intent) {
+			assert intent.getClass().equals(this.intent) : "invalid intent type";
+			try {
+				long start = System.nanoTime();
+				consumer.accept((E) intent);
+				long time = System.nanoTime() - start;
+				
+				this.time.addAndGet(time);
+				this.count.incrementAndGet();
+			} catch (Throwable t) {
+				Log.e("Fatal Exception while processing intent: " + intent);
+				Log.e(t);
+			} finally {
+				if (intent.decrementRemaining(IntentManager.this)) {
+					Consumer<Intent> completedCallback = intent.getCompletedCallback();
+					if (completedCallback != null)
+						completedCallback.accept(intent);
+					queuedIntents.decrementAndGet();
+				}
+			}
 		}
 		
 		public long getTime() {
@@ -183,51 +242,37 @@ public class IntentManager implements IntentRegistry {
 			count.incrementAndGet();
 		}
 		
+		@NotNull
+		public IntentSpeedStatistics toSpeedStatistics() {
+			return new IntentSpeedStatistics(key, intent, time.get(), count.get());
+		}
+		
 		@Override
-		public int compareTo(@NotNull IntentSpeedRecord record) {
-			return Long.compare(record.getTime(), getTime());
+		public int compareTo(@NotNull IntentRunner runner) {
+			return Long.compare(runner.getTime(), getTime());
 		}
 		
 	}
 	
-	private class IntentRunner<E extends Intent> implements PrioritizedRunnable {
+	private class IntentExecutor<E extends Intent> implements PrioritizedRunnable {
 		
-		private final Consumer<E> r;
-		private final E i;
-		private final AtomicInteger remaining;
+		private final IntentRunner<E> r;
+		private final Intent i;
 		
-		public IntentRunner(@NotNull Consumer<E> r, @NotNull E i, @NotNull AtomicInteger remaining) {
+		public IntentExecutor(@NotNull IntentRunner<E> r, @NotNull Intent i) {
 			this.r = r;
 			this.i = i;
-			this.remaining = remaining;
 		}
 		
 		@Override
 		public void run() {
-			try {
-				long start = System.nanoTime();
-				r.accept(i);
-				long time = System.nanoTime() - start;
-				@SuppressWarnings("unchecked") // Must be of type E
-						Class<E> klass = (Class<E>) i.getClass();
-				speedRecorder.addRecord(klass, r, time);
-			} catch (Throwable t) {
-				Log.e("Fatal Exception while processing intent: " + i);
-				Log.e(t);
-			} finally {
-				if (remaining.decrementAndGet() <= 0) {
-					i.markAsComplete(IntentManager.this);
-					Consumer<Intent> completedCallback = i.getCompletedCallback();
-					if (completedCallback != null)
-						completedCallback.accept(i);
-				}
-			}
+			r.broadcast(i);
 		}
 		
 		@Override
 		public int compareTo(@NotNull PrioritizedRunnable r) {
-			if (r instanceof IntentRunner)
-				return i.compareTo(((IntentRunner) r).i);
+			if (r instanceof IntentExecutor)
+				return i.compareTo(((IntentExecutor) r).i);
 			return -1;
 		}
 		

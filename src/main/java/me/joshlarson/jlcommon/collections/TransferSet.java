@@ -23,7 +23,6 @@
  ***********************************************************************************/
 package me.joshlarson.jlcommon.collections;
 
-import me.joshlarson.jlcommon.concurrency.beans.ConcurrentMap;
 import me.joshlarson.jlcommon.log.Log;
 import org.jetbrains.annotations.NotNull;
 

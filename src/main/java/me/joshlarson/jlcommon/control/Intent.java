@@ -31,25 +31,33 @@ import java.util.function.Consumer;
 
 public abstract class Intent implements Comparable<Intent> {
 	
-	private boolean broadcasted;
-	private boolean complete;
+	private int remaining;
 	private Intent parallel;
 	private Intent sequential;
 	private Consumer<Intent> completedCallback;
 	
 	protected Intent() {
-		this.broadcasted = false;
-		this.complete = false;
+		this.remaining = Integer.MAX_VALUE;
 		this.parallel = null;
 		this.sequential = null;
 		this.completedCallback = null;
 	}
 	
+	synchronized void setRemaining(int remaining) {
+		this.remaining = remaining;
+	}
+	
 	/**
 	 * Called when the intent has been completed
 	 */
+	synchronized boolean decrementRemaining(@NotNull IntentManager intentManager) {
+		if (--remaining > 0)
+			return false;
+		markAsComplete(intentManager);
+		return true;
+	}
+	
 	synchronized void markAsComplete(@NotNull IntentManager intentManager) {
-		this.complete = true;
 		if (sequential != null)
 			sequential.broadcast(intentManager);
 		sequential = null;
@@ -74,7 +82,7 @@ public abstract class Intent implements Comparable<Intent> {
 	 * @return TRUE if the intent has been broadcasted and processed, FALSE otherwise
 	 */
 	public synchronized boolean isComplete() {
-		return complete;
+		return remaining <= 0;
 	}
 	
 	/**
@@ -83,7 +91,7 @@ public abstract class Intent implements Comparable<Intent> {
 	 * @return TRUE if the intent has been broadcasted, FALSE otherwise
 	 */
 	public synchronized boolean isBroadcasted() {
-		return broadcasted;
+		return remaining != Integer.MAX_VALUE;
 	}
 	
 	/**
@@ -163,9 +171,8 @@ public abstract class Intent implements Comparable<Intent> {
 	 * @param intentManager the intent manager to broadcast this intent on
 	 */
 	public synchronized void broadcast(@NotNull IntentManager intentManager) {
-		if (broadcasted)
+		if (isBroadcasted())
 			throw new IllegalStateException("Intent has already been broadcasted!");
-		broadcasted = true;
 		intentManager.broadcastIntent(this);
 		if (parallel != null)
 			parallel.broadcast(intentManager);
