@@ -27,6 +27,8 @@ import me.joshlarson.jlcommon.callback.CallbackManager;
 import me.joshlarson.jlcommon.concurrency.Delay;
 import me.joshlarson.jlcommon.log.Log;
 
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLProtocolException;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -287,11 +289,11 @@ public class TCPSocket {
 				while (running.get()) {
 					waitIncoming(input, buffer);
 				}
-			} catch (SocketException e) {
+			} catch (IOException e) {
 				String message = e.getMessage();
 				if (message != null && SOCKET_CLOSED_MESSAGE.matcher(message).matches())
 					return;
-				Log.e("Socket exception within the TCP socket - terminating...");
+				Log.e("IO exception within the TCP socket - terminating...");
 				Log.e(e);
 			} catch (Throwable t) {
 				Log.e("Uncaught exception within the TCP socket - terminating...");
