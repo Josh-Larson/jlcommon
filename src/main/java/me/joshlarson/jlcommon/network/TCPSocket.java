@@ -33,12 +33,16 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 
 public class TCPSocket {
+	
+	private static final Pattern SOCKET_CLOSED_MESSAGE = Pattern.compile(".*socket.+closed.*", Pattern.CASE_INSENSITIVE);
 	
 	private final CallbackManager<TCPSocketCallback> callbackManager;
 	private final TCPSocketListener listener;
@@ -279,10 +283,16 @@ public class TCPSocket {
 			try {
 				alive.set(true);
 				InputStream input = TCPSocket.this.socketInputStream;
-				byte [] buffer = new byte[TCPSocket.this.bufferSize];
+				byte[] buffer = new byte[TCPSocket.this.bufferSize];
 				while (running.get()) {
 					waitIncoming(input, buffer);
 				}
+			} catch (SocketException e) {
+				String message = e.getMessage();
+				if (message != null && SOCKET_CLOSED_MESSAGE.matcher(message).matches())
+					return;
+				Log.e("Socket exception within the TCP socket - terminating...");
+				Log.e(e);
 			} catch (Throwable t) {
 				Log.e("Uncaught exception within the TCP socket - terminating...");
 				Log.e(t);
