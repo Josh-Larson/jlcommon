@@ -289,6 +289,8 @@ public class TCPSocket {
 				while (running.get()) {
 					waitIncoming(input, buffer);
 				}
+			} catch (EOFException e) {
+				// We're all fine here - just means the socket closed normally
 			} catch (IOException e) {
 				String message = e.getMessage();
 				if (message != null && SOCKET_CLOSED_MESSAGE.matcher(message).matches())
