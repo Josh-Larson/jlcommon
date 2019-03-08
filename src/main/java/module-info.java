@@ -10,7 +10,6 @@ module me.joshlarson.jlcommon {
 	exports me.joshlarson.jlcommon.info;
 	exports me.joshlarson.jlcommon.log;
 	exports me.joshlarson.jlcommon.log.log_wrapper;
-	exports me.joshlarson.jlcommon.network;
 	exports me.joshlarson.jlcommon.security;
 	exports me.joshlarson.jlcommon.utilities;
 }
